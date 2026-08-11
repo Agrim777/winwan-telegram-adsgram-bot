@@ -6,7 +6,7 @@
 class AdsgramService {
   constructor() {
     // Default test block ID from Adsgram documentation (or custom user configured ID)
-    this.blockId = localStorage.getItem('winwan_adsgram_block_id') || '42427';
+    this.blockId = localStorage.getItem('winwan_adsgram_block_id') || '42428';
     this.mode = localStorage.getItem('winwan_ads_mode') || 'adsgram_live'; // 'adsgram_live' | 'simulator'
     this.adController = null;
     this.isLoaded = false;
