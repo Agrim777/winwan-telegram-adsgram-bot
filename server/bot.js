@@ -41,7 +41,7 @@ Winwan is a next-generation <b>Watch-to-Earn Telegram Mini App</b> powered by <b
 ⚡ <i>Ready to start earning rewards?</i>`;
 
     const keyboard = new InlineKeyboard()
-      .url('🚀 Open Mini App & Earn', 'https://t.me/Winwanbot/Winwan')
+      .webApp('🚀 Open Mini App & Earn', 'https://agrim777.github.io/winwan-telegram-adsgram-bot/')
       .row()
       .url('📢 Adsgram Network', 'https://adsgram.ai')
       .url('💬 Community', 'https://t.me/telegram');
@@ -53,7 +53,7 @@ Winwan is a next-generation <b>Watch-to-Earn Telegram Mini App</b> powered by <b
   } catch (err) {
     console.error('Error handling /start command:', err);
     await ctx.reply('👋 Welcome to Winwan! Tap the button below to start earning.', {
-      reply_markup: new InlineKeyboard().url('🚀 Open Mini App', 'https://t.me/Winwanbot/Winwan')
+      reply_markup: new InlineKeyboard().webApp('🚀 Open Mini App', 'https://agrim777.github.io/winwan-telegram-adsgram-bot/')
     });
   }
 });
@@ -62,7 +62,7 @@ Winwan is a next-generation <b>Watch-to-Earn Telegram Mini App</b> powered by <b
 bot.command('earn', async (ctx) => {
   try {
     const keyboard = new InlineKeyboard()
-      .url('🪙 Watch Adsgram Ads', 'https://t.me/Winwanbot/Winwan');
+      .webApp('🪙 Watch Adsgram Ads', 'https://agrim777.github.io/winwan-telegram-adsgram-bot/');
 
     await ctx.reply(
       `🎬 <b>Watch Adsgram Ads &amp; Earn Coins!</b>\n\nTap below to launch the Mini App and claim your ad rewards immediately:`,
@@ -98,7 +98,7 @@ Adsgram is the leading Telegram ad network for Mini Apps. Earn coins for every f
 // Any other message fallback
 bot.on('message:text', async (ctx) => {
   const keyboard = new InlineKeyboard()
-    .url('🚀 Open Winwan Mini App', 'https://t.me/Winwanbot/Winwan');
+    .webApp('🚀 Open Winwan Mini App', 'https://agrim777.github.io/winwan-telegram-adsgram-bot/');
 
   await ctx.reply(`👋 Hi there! Tap below to open the Winwan Mini App and start earning:`, {
     reply_markup: keyboard
