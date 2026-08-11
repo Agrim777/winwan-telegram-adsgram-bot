@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Winwan - Watch & Earn</title>
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Adsgram SDK -->
+  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-dark">
+  <div id="app" class="app-container">
+    
+    <!-- Top Header / Profile Bar -->
+    <header class="app-header">
+      <div class="user-profile">
+        <div class="avatar-wrapper">
+          <img id="userAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=Winwan" alt="Avatar" />
+          <span class="user-badge" id="userLevelBadge">Lv.1</span>
+        </div>
+        <div class="user-info">
+          <h2 id="userName">Telegram User</h2>
+          <span class="user-status" id="userStatus"><i class="fa-solid fa-bolt"></i> <span id="energyText">10/10 Energy</span></span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnSettings" class="icon-btn" title="Settings & Adsgram Config">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Balance & Stats Display Card -->
+    <section class="balance-card">
+      <div class="balance-sub">Total Earnings</div>
+      <div class="balance-main">
+        <div class="coin-icon-wrapper">
+          <i class="fa-solid fa-coins gold-glow"></i>
+        </div>
+        <span id="coinBalance" class="balance-amount">0</span>
+        <span class="coin-unit">COINS</span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-label"><i class="fa-solid fa-play"></i> Ads Watched</span>
+          <span class="stat-value" id="statAdsWatched">0</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-label"><i class="fa-solid fa-chart-line"></i> Multiplier</span>
+          <span class="stat-value" id="statMultiplier">1.0x</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-label"><i class="fa-solid fa-fire"></i> Streak</span>
+          <span class="stat-value" id="statStreak">1 Day</span>
+        </div>
+      </div>
+
+      <!-- Energy Progress Bar -->
+      <div class="energy-container">
+        <div class="energy-labels">
+          <span><i class="fa-solid fa-battery-half"></i> Energy Refill</span>
+          <span id="energyTimer">Full</span>
+        </div>
+        <div class="energy-bar-bg">
+          <div id="energyBarFill" class="energy-bar-fill" style="width: 100%;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Navigation Views (Tabs) -->
+    <main class="main-content">
+      
+      <!-- TAB 1: EARN ARENA -->
+      <section id="tabEarn" class="tab-panel active">
+        
+        <!-- Primary Rewarded Ad Action Hero -->
+        <div class="ad-hero-card">
+          <div class="hero-glow"></div>
+          <div class="hero-icon-container">
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring delay"></div>
+            <div class="hero-icon">
+              <i class="fa-solid fa-film"></i>
+            </div>
+          </div>
+          <h3 class="hero-title">Watch Video & Earn</h3>
+          <p class="hero-desc">Watch a short sponsored video from <strong>Adsgram</strong> to receive instant coins and XP!</p>
+          
+          <div class="reward-preview">
+            <span class="reward-pill">+<span id="adRewardAmount">100</span> <i class="fa-solid fa-coins"></i></span>
+            <span class="reward-pill xp">+<span id="adXpAmount">25</span> XP</span>
+          </div>
+
+          <button id="btnWatchRewarded" class="btn-primary btn-glow">
+            <span class="btn-icon"><i class="fa-solid fa-circle-play"></i></span>
+            <span class="btn-text">Watch Rewarded Ad</span>
+          </button>
+          
+          <div id="adCooldownNotice" class="cooldown-notice hidden">
+            <i class="fa-solid fa-clock"></i> Next ad in: <span id="cooldownTimer">00:00</span>
+          </div>
+        </div>
+
+        <!-- Secondary Ad Formats & Quick Actions -->
+        <div class="action-grid">
+          <div class="action-card" id="btnShowInterstitial">
+            <div class="action-icon purple"><i class="fa-solid fa-tv"></i></div>
+            <div class="action-details">
+              <h4>Quick Ad Break</h4>
+              <p>Interstitial preview (+30 coins)</p>
+            </div>
+            <i class="fa-solid fa-chevron-right action-arrow"></i>
+          </div>
+
+          <div class="action-card" id="btnDailyBonus">
+            <div class="action-icon amber"><i class="fa-solid fa-gift"></i></div>
+            <div class="action-details">
+              <h4>Daily Check-in Bonus</h4>
+              <p id="dailyBonusStatus">Claim +250 free coins</p>
+            </div>
+            <i class="fa-solid fa-check-circle action-arrow ready" id="dailyBonusIcon"></i>
+          </div>
+        </div>
+
+        <!-- Banner Ad Container -->
+        <div class="banner-ad-wrapper">
+          <div class="banner-label">SPONSORED BY ADSGRAM</div>
+          <div id="adsgramBannerContainer" class="banner-slot">
+            <div class="banner-placeholder">
+              <i class="fa-solid fa-rectangle-ad"></i>
+              <span>Adsgram Banner Placement</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: TASKS & QUESTS -->
+      <section id="tabQuests" class="tab-panel">
+        <div class="panel-header">
+          <h3>Daily Quests & Challenges</h3>
+          <p>Complete tasks to boost your daily coin yield</p>
+        </div>
+
+        <div class="quests-list" id="questsContainer">
+          <!-- Dynamically populated via app.js -->
+        </div>
+      </section>
+
+      <!-- TAB 3: UPGRADES & SHOP -->
+      <section id="tabUpgrades" class="tab-panel">
+        <div class="panel-header">
+          <h3>Power-Ups & Multipliers</h3>
+          <p>Invest your coins to permanently multiply ad rewards</p>
+        </div>
+
+        <div class="upgrades-list" id="upgradesContainer">
+          <!-- Dynamically populated via app.js -->
+        </div>
+      </section>
+
+      <!-- TAB 4: FRIENDS & INVITE -->
+      <section id="tabFriends" class="tab-panel">
+        <div class="panel-header">
+          <h3>Invite & Earn Together</h3>
+          <p>Earn 20% lifetime bonus on all coins earned by invited friends!</p>
+        </div>
+
+        <div class="referral-card">
+          <div class="ref-hero-icon"><i class="fa-solid fa-user-group"></i></div>
+          <h4>Your Invite Link</h4>
+          <p class="ref-sub">Share with friends or groups on Telegram</p>
+          
+          <div class="ref-input-group">
+            <input type="text" id="refLinkInput" readonly value="https://t.me/Winwanbot?start=ref_user" />
+            <button id="btnCopyRef" class="btn-icon-sub"><i class="fa-solid fa-copy"></i></button>
+          </div>
+
+          <button id="btnShareTelegram" class="btn-secondary">
+            <i class="fa-brands fa-telegram"></i> Share on Telegram
+          </button>
+        </div>
+
+        <div class="stats-box">
+          <div class="stats-box-item">
+            <span class="num" id="statFriendsCount">0</span>
+            <span class="lbl">Friends Invited</span>
+          </div>
+          <div class="stats-box-item">
+            <span class="num" id="statReferralBonus">0</span>
+            <span class="lbl">Referral Earnings</span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="tabEarn">
+        <i class="fa-solid fa-coins"></i>
+        <span>Earn</span>
+      </button>
+      <button class="nav-item" data-tab="tabQuests">
+        <i class="fa-solid fa-list-check"></i>
+        <span>Quests</span>
+      </button>
+      <button class="nav-item" data-tab="tabUpgrades">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Upgrades</span>
+      </button>
+      <button class="nav-item" data-tab="tabFriends">
+        <i class="fa-solid fa-users"></i>
+        <span>Friends</span>
+      </button>
+    </nav>
+
+    <!-- SETTINGS & ADSGRAM DEBUG MODAL -->
+    <div id="settingsModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-sliders"></i> Adsgram & App Settings</h3>
+          <button id="btnCloseSettings" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="inputBlockId">Adsgram Rewarded Block ID</label>
+            <input type="text" id="inputBlockId" placeholder="e.g. 2924 (or your Adsgram ID)" />
+            <small class="help-text">Obtain from your publisher dashboard on <a href="https://adsgram.ai" target="_blank">adsgram.ai</a></small>
+          </div>
+
+          <div class="form-group">
+            <label for="selectAdMode">Ads Mode</label>
+            <select id="selectAdMode">
+              <option value="adsgram_live">Real Adsgram SDK (Live / Test Block)</option>
+              <option value="simulator">Interactive Simulator (For Web Browser Testing)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Haptic Feedback (Telegram)</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggleHaptics" checked />
+              <label for="toggleHaptics"></label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Live Event Log</label>
+            <div id="debugLog" class="debug-console">
+              <div class="log-entry system">[System] Adsgram Service ready</div>
+            </div>
+          </div>
+
+          <div class="modal-footer-actions">
+            <button id="btnSaveSettings" class="btn-primary full-width">Save Configuration</button>
+            <button id="btnResetData" class="btn-danger full-width">Reset Local Demo Data</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REWARD TOAST / CELEBRATION MODAL -->
+    <div id="rewardModal" class="reward-overlay hidden">
+      <div class="reward-popup">
+        <div class="reward-burst">🎉</div>
+        <h3>Reward Claimed!</h3>
+        <p class="reward-desc" id="rewardPopupDesc">You earned coins from Adsgram!</p>
+        <div class="reward-sum">
+          <i class="fa-solid fa-coins gold-glow"></i>
+          <span id="rewardPopupCoins">+100</span>
+        </div>
+        <button id="btnCollectReward" class="btn-primary">Awesome!</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="adsgram-service.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
