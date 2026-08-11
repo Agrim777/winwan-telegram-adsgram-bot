@@ -41,14 +41,15 @@ class AdsgramService {
 
     if (typeof window.Adsgram !== 'undefined') {
       try {
+        // Initialize as per official Adsgram docs
         this.adController = window.Adsgram.init({
           blockId: this.blockId,
-          debug: true,
-          debugBannerType: 'FullscreenMedia'
+          debug: false
         });
 
+        // Event listeners as documented in Adsgram API reference
         this.adController.addEventListener('onReward', () => {
-          this.log('Adsgram Event: [onReward] - User watched ad successfully!', 'reward');
+          this.log('Adsgram Event: [onReward] - User watched ad till the end!', 'reward');
         });
 
         this.adController.addEventListener('onStart', () => {
@@ -56,7 +57,7 @@ class AdsgramService {
         });
 
         this.adController.addEventListener('onSkip', () => {
-          this.log('Adsgram Event: [onSkip] - User skipped ad prematurely', 'error');
+          this.log('Adsgram Event: [onSkip] - User skipped ad', 'error');
         });
 
         this.adController.addEventListener('onError', (err) => {
@@ -74,31 +75,35 @@ class AdsgramService {
   }
 
   /**
-   * Shows a Rewarded Video Ad
-   * @returns {Promise<boolean>} Resolves to true if user completed ad, rejects/resolves false if skipped/failed
+   * Shows a Rewarded Video Ad according to Adsgram official documentation
+   * @returns {Promise<boolean>}
    */
   async showRewardedVideo() {
-    this.log(`Requesting Rewarded Video Ad (Mode: ${this.mode})...`, 'ad-event');
+    this.log(`Requesting Rewarded Video Ad with Block ID: ${this.blockId}...`, 'ad-event');
 
-    // If simulator mode is active or Adsgram object is not available
     if (this.mode === 'simulator' || !window.Adsgram || !this.adController) {
       return this._simulateAdExperience('Rewarded Video Ad');
     }
 
-    try {
-      // Adsgram show() returns a promise that resolves on reward, or rejects on skip/error
-      const result = await this.adController.show();
-      this.log('Ad completed! Rewarding player...', 'reward');
-      return true;
-    } catch (error) {
-      this.log(`Ad was closed or failed: ${error?.description || error?.message || JSON.stringify(error)}`, 'error');
-      
-      // If error is due to running in desktop browser without Telegram Mini App container, offer simulation
-      if (window.confirm("Adsgram live ads run natively inside Telegram. Would you like to run the Ad Simulator to test reward crediting?")) {
-        return this._simulateAdExperience('Rewarded Video Ad');
-      }
-      return false;
-    }
+    return new Promise((resolve) => {
+      this.adController
+        .show()
+        .then((result) => {
+          // User watched ad till the end -> grant reward
+          this.log(`Adsgram Success: ${JSON.stringify(result || {})}`, 'reward');
+          resolve(true);
+        })
+        .catch((result) => {
+          // User closed banner or error occurred
+          this.log(`Adsgram Closed/Error: ${JSON.stringify(result || {})}`, 'error');
+          // If in desktop browser without Telegram Mini App container, offer fallback
+          if (!window.Telegram?.WebApp?.initData) {
+            resolve(this._simulateAdExperience('Rewarded Video Ad (Web Simulator)'));
+          } else {
+            resolve(false);
+          }
+        });
+    });
   }
 
   /**
