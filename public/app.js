@@ -120,8 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Referral Link Setup
-  const inviteUrl = `https://t.me/${botUsername}?start=ref_${userId}`;
+  // Referral & Direct App Link Setup
+  const inviteUrl = `https://t.me/Winwanbot/Winwan?startapp=ref_${userId}`;
   elRefLinkInput.value = inviteUrl;
 
   // --- LOGGING SETUP ---
