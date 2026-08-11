@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   elBtnSaveSettings.onclick = () => {
-    const newBlockId = elInputBlockId.value.trim() || '2924';
+    const newBlockId = elInputBlockId.value.trim() || '42428';
     const newMode = elSelectAdMode.value;
 
     window.adsgramService.mode = newMode;
