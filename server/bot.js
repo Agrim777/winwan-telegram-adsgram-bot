@@ -6,6 +6,7 @@
 const { Bot, InlineKeyboard } = require('grammy');
 require('dotenv').config();
 
+const token = process.env.BOT_TOKEN || '8787752776:AAFgCorUmaixzJn4Pt4RkQANkqXTsuKK8KI';
 const miniappUrl = process.env.MINIAPP_URL || 'https://agrim777.github.io/winwan-telegram-adsgram-bot/';
 
 const bot = new Bot(token);
