@@ -11,9 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       tg.setHeaderColor('#0b0f19');
       tg.setBackgroundColor('#0b0f19');
-    } catch (e) {
-      console.warn('Telegram color setting failed:', e);
-    }
+    } catch (e) {}
   }
 
   // --- GAME STATE ---
@@ -42,17 +40,25 @@ document.addEventListener('DOMContentLoaded', () => {
     ]
   };
 
-  let state = JSON.parse(localStorage.getItem('winwan_cyber_state')) || defaultState;
+  let state = defaultState;
+  try {
+    const saved = localStorage.getItem('winwan_cyber_state');
+    if (saved) {
+      state = Object.assign({}, defaultState, JSON.parse(saved));
+    }
+  } catch (e) {
+    state = defaultState;
+  }
 
   function saveState() {
-    localStorage.setItem('winwan_cyber_state', JSON.stringify(state));
+    try {
+      localStorage.setItem('winwan_cyber_state', JSON.stringify(state));
+    } catch (e) {}
   }
 
   // Telegram Haptics Helper
   function triggerHaptic(type = 'light') {
-    const hapticsEnabled = document.getElementById('toggleHaptics')?.checked ?? true;
-    if (!hapticsEnabled || !tg?.HapticFeedback) return;
-
+    if (!tg?.HapticFeedback) return;
     try {
       if (type === 'success') {
         tg.HapticFeedback.notificationOccurred('success');
@@ -69,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- UI ELEMENTS ---
   const elUserName = document.getElementById('userName');
   const elUserAvatar = document.getElementById('userAvatar');
-  const elUserLevelBadge = document.getElementById('userLevelBadge');
   const elUserRankTitle = document.getElementById('userRankTitle');
   const elCoinBalance = document.getElementById('coinBalance');
   const elLeagueCurrent = document.getElementById('leagueCurrent');
@@ -100,7 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const elBtnCloseInfo = document.getElementById('btnCloseInfo');
   const elBtnJoinCommunity = document.getElementById('btnJoinCommunity');
   const elRewardModal = document.getElementById('rewardModal');
-  const elRewardPopupTitle = document.getElementById('rewardPopupTitle');
   const elRewardPopupCoins = document.getElementById('rewardPopupCoins');
   const elRewardPopupDesc = document.getElementById('rewardPopupDesc');
   const elBtnCollectReward = document.getElementById('btnCollectReward');
@@ -109,33 +113,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const user = tg?.initDataUnsafe?.user;
   const userId = user?.id || 'miner_' + Math.floor(Math.random() * 10000);
   
-  if (user) {
+  if (user && elUserName) {
     elUserName.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-    if (user.photo_url) {
-      elUserAvatar.src = user.photo_url;
-    } else {
-      elUserAvatar.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username || user.first_name}`;
+    if (elUserAvatar) {
+      if (user.photo_url) {
+        elUserAvatar.src = user.photo_url;
+      } else {
+        elUserAvatar.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username || user.first_name}`;
+      }
     }
   }
 
-  elRefLinkInput.value = `https://t.me/Winwanbot/Winwan?startapp=ref_${userId}`;
-
-  // --- LOGGING SETUP ---
-  function addDebugLog(msg, type = 'system') {
-    if (!elDebugLog) return;
-    const item = document.createElement('div');
-    item.className = `log-entry ${type}`;
-    const time = new Date().toLocaleTimeString();
-    item.textContent = `[${time}] ${msg}`;
-    elDebugLog.appendChild(item);
-    elDebugLog.scrollTop = elDebugLog.scrollHeight;
+  if (elRefLinkInput) {
+    elRefLinkInput.value = `https://t.me/Winwanbot/Winwan?startapp=ref_${userId}`;
   }
 
-  window.adsgramService.setLogger((msg, type) => addDebugLog(msg, type));
-  window.adsgramService.init('42535');
-
-  elInputBlockId.value = window.adsgramService.blockId;
-  elSelectAdMode.value = window.adsgramService.mode;
+  // --- ADSGRAM SERVICE INIT ---
+  if (window.adsgramService) {
+    window.adsgramService.init('42535');
+  }
 
   // --- LEAGUE RANKS ---
   const leagues = [
@@ -155,40 +151,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- UPDATE UI ---
   function updateUI() {
-    elCoinBalance.textContent = state.coins.toLocaleString();
+    if (elCoinBalance) elCoinBalance.textContent = Number(state.coins || 0).toLocaleString();
 
     // League progress
-    const curLeague = getLeague(state.coins);
+    const curLeague = getLeague(state.coins || 0);
     const nextLeague = leagues[curLeague.index + 1] || null;
-    elUserRankTitle.innerHTML = `<i class="fa-solid ${curLeague.icon}"></i> ${curLeague.name} League`;
-    elLeagueCurrent.textContent = curLeague.name;
+    if (elUserRankTitle) elUserRankTitle.innerHTML = `<i class="fa-solid ${curLeague.icon}"></i> ${curLeague.name} League`;
+    if (elLeagueCurrent) elLeagueCurrent.textContent = curLeague.name;
 
-    if (nextLeague) {
+    if (nextLeague && elLeagueNext && elLeagueBarFill) {
       elLeagueNext.textContent = `${nextLeague.name} (${nextLeague.threshold.toLocaleString()})`;
       const progress = ((state.coins - curLeague.threshold) / (nextLeague.threshold - curLeague.threshold)) * 100;
       elLeagueBarFill.style.width = `${Math.max(4, Math.min(100, progress))}%`;
-    } else {
+    } else if (elLeagueNext && elLeagueBarFill) {
       elLeagueNext.textContent = 'MAX RANK';
       elLeagueBarFill.style.width = '100%';
     }
 
     // Tap Power with Turbo Multiplier
-    const isTurbo = Date.now() < state.turboActiveUntil;
-    const currentPower = isTurbo ? state.tapPower * 2 : state.tapPower;
-    elTapPowerDisplay.textContent = isTurbo ? `${currentPower} (🔥 2X TURBO)` : `${currentPower}`;
+    const isTurbo = Date.now() < (state.turboActiveUntil || 0);
+    const currentPower = isTurbo ? (state.tapPower || 1) * 2 : (state.tapPower || 1);
+    if (elTapPowerDisplay) elTapPowerDisplay.textContent = isTurbo ? `${currentPower} (🔥 2X TURBO)` : `${currentPower}`;
 
     // Energy Bar
-    elEnergyText.textContent = `${state.energy}/${state.maxEnergy}`;
-    const energyPct = (state.energy / state.maxEnergy) * 100;
-    elEnergyBarFill.style.width = `${energyPct}%`;
+    if (elEnergyText) elEnergyText.textContent = `${state.energy}/${state.maxEnergy}`;
+    if (elEnergyBarFill) {
+      const energyPct = (state.energy / state.maxEnergy) * 100;
+      elEnergyBarFill.style.width = `${energyPct}%`;
+    }
 
     // Spins
-    elSpinsAvailable.textContent = state.spinsAvailable;
-    elBtnSpinWheel.disabled = state.spinsAvailable <= 0;
+    if (elSpinsAvailable) elSpinsAvailable.textContent = state.spinsAvailable;
+    if (elBtnSpinWheel) elBtnSpinWheel.disabled = (state.spinsAvailable || 0) <= 0;
 
     // Friends
-    elStatFriendsCount.textContent = state.invitedFriends;
-    elStatReferralBonus.textContent = state.referralEarnings.toLocaleString();
+    if (elStatFriendsCount) elStatFriendsCount.textContent = state.invitedFriends || 0;
+    if (elStatReferralBonus) elStatReferralBonus.textContent = (state.referralEarnings || 0).toLocaleString();
 
     renderUpgrades();
     renderQuests();
@@ -196,29 +194,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- TAP MINING ENGINE ---
-  function handleTap(event) {
+  function handleTap(clientX, clientY) {
     if (state.energy <= 0) {
       triggerHaptic('warning');
       return;
     }
 
-    const isTurbo = Date.now() < state.turboActiveUntil;
-    const power = isTurbo ? state.tapPower * 2 : state.tapPower;
+    const isTurbo = Date.now() < (state.turboActiveUntil || 0);
+    const power = isTurbo ? (state.tapPower || 1) * 2 : (state.tapPower || 1);
     const energyCost = Math.min(state.energy, power);
 
-    state.coins += power;
-    state.energy -= energyCost;
-    state.totalTaps += 1;
+    state.coins = (state.coins || 0) + power;
+    state.energy = Math.max(0, state.energy - energyCost);
+    state.totalTaps = (state.totalTaps || 0) + 1;
 
     triggerHaptic('light');
 
-    // Create floating particle
-    const rect = elTapCore.getBoundingClientRect();
-    const touch = event.touches ? event.touches[0] : event;
-    const x = touch.clientX || (rect.left + rect.width / 2);
-    const y = touch.clientY || (rect.top + rect.height / 2);
-
-    createFloatingParticle(x, y, `+${power}`);
+    // Floating particle
+    if (clientX && clientY) {
+      createFloatingParticle(clientX, clientY, `+${power}`);
+    } else if (elTapCore) {
+      const rect = elTapCore.getBoundingClientRect();
+      createFloatingParticle(rect.left + rect.width / 2, rect.top + rect.height / 2, `+${power}`);
+    }
 
     // Update quest progress
     const q1 = state.quests.find(q => q.id === 'q_taps_100');
@@ -243,16 +241,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 800);
   }
 
-  elTapCore.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    for (let i = 0; i < e.touches.length; i++) {
-      handleTap(e.touches[i]);
-    }
-  }, { passive: false });
+  if (elTapCore) {
+    // Touch support (multi-finger tapping)
+    elTapCore.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      for (let i = 0; i < e.touches.length; i++) {
+        handleTap(e.touches[i].clientX, e.touches[i].clientY);
+      }
+    }, { passive: false });
 
-  elTapCore.addEventListener('mousedown', (e) => {
-    handleTap(e);
-  });
+    // Desktop click support
+    elTapCore.addEventListener('click', (e) => {
+      handleTap(e.clientX, e.clientY);
+    });
+  }
 
   // --- LUCKY WHEEL CANVAS ENGINE ---
   const wheelSlices = [
@@ -268,7 +270,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let isSpinning = false;
 
   function drawWheel() {
+    if (!elWheelCanvas) return;
     const ctx = elWheelCanvas.getContext('2d');
+    if (!ctx) return;
+
     const numSlices = wheelSlices.length;
     const arc = (2 * Math.PI) / numSlices;
     const radius = elWheelCanvas.width / 2;
@@ -300,87 +305,102 @@ document.addEventListener('DOMContentLoaded', () => {
 
   drawWheel();
 
-  elBtnSpinWheel.onclick = () => {
-    if (isSpinning || state.spinsAvailable <= 0) return;
+  if (elBtnSpinWheel) {
+    elBtnSpinWheel.onclick = () => {
+      if (isSpinning || (state.spinsAvailable || 0) <= 0) return;
 
-    isSpinning = true;
-    state.spinsAvailable -= 1;
-    triggerHaptic('medium');
+      isSpinning = true;
+      state.spinsAvailable = Math.max(0, state.spinsAvailable - 1);
+      triggerHaptic('medium');
 
-    const winningIndex = Math.floor(Math.random() * wheelSlices.length);
-    const sliceAngle = 360 / wheelSlices.length;
-    const targetRotation = (360 * 5) + (360 - (winningIndex * sliceAngle + sliceAngle / 2)) - 90;
+      const winningIndex = Math.floor(Math.random() * wheelSlices.length);
+      const sliceAngle = 360 / wheelSlices.length;
+      const targetRotation = (360 * 5) + (360 - (winningIndex * sliceAngle + sliceAngle / 2)) - 90;
 
-    currentWheelAngle += targetRotation;
-    elWheelContainer.style.transform = `rotate(${currentWheelAngle}deg)`;
+      currentWheelAngle += targetRotation;
+      if (elWheelContainer) elWheelContainer.style.transform = `rotate(${currentWheelAngle}deg)`;
 
-    setTimeout(() => {
-      isSpinning = false;
-      const prize = wheelSlices[winningIndex];
+      setTimeout(() => {
+        isSpinning = false;
+        const prize = wheelSlices[winningIndex];
 
-      if (prize.type === 'coins') {
-        state.coins += prize.value;
-        showRewardModal(prize.value, `Lucky Wheel Prize: ${prize.label}!`);
-      } else if (prize.type === 'turbo') {
-        state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
-        showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
-      }
+        if (prize.type === 'coins') {
+          state.coins += prize.value;
+          showRewardModal(prize.value, `Lucky Wheel Prize: ${prize.label}!`);
+        } else if (prize.type === 'turbo') {
+          state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
+          showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
+        }
 
-      // Quest progress
-      const q3 = state.quests.find(q => q.id === 'q_spin_wheel');
-      if (q3) q3.progress = 1;
+        // Quest progress
+        const q3 = state.quests.find(q => q.id === 'q_spin_wheel');
+        if (q3) q3.progress = 1;
 
-      triggerHaptic('success');
+        triggerHaptic('success');
+        updateUI();
+      }, 4100);
+
       updateUI();
-    }, 4100);
-
-    updateUI();
-  };
+    };
+  }
 
   // Extra Spins via Adsgram Video Ad
-  elBtnExtraSpinAd.onclick = async () => {
-    triggerHaptic('medium');
-    const success = await window.adsgramService.showRewardedVideo();
-    if (success) {
-      state.spinsAvailable += 2;
-      triggerHaptic('success');
-      showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
-      updateUI();
-    }
-  };
+  if (elBtnExtraSpinAd) {
+    elBtnExtraSpinAd.onclick = async () => {
+      triggerHaptic('medium');
+      if (window.adsgramService) {
+        const success = await window.adsgramService.showRewardedVideo();
+        if (success) {
+          state.spinsAvailable = (state.spinsAvailable || 0) + 2;
+          triggerHaptic('success');
+          showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
+          updateUI();
+        }
+      }
+    };
+  }
 
   // --- BOOSTERS (ADSGRAM REWARDED ADS) ---
-  elBtnBoosterEnergy.onclick = async () => {
-    triggerHaptic('medium');
-    const success = await window.adsgramService.showRewardedVideo();
-    if (success) {
-      state.energy = state.maxEnergy;
-      state.coins += 250;
-      triggerHaptic('success');
-      showRewardModal(250, '⚡ Instant Full Energy Refill + 250 Bonus Coins Claimed!');
-      updateUI();
-    }
-  };
+  if (elBtnBoosterEnergy) {
+    elBtnBoosterEnergy.onclick = async () => {
+      triggerHaptic('medium');
+      if (window.adsgramService) {
+        const success = await window.adsgramService.showRewardedVideo();
+        if (success) {
+          state.energy = state.maxEnergy;
+          state.coins = (state.coins || 0) + 250;
+          triggerHaptic('success');
+          showRewardModal(250, '⚡ Instant Full Energy Refill + 250 Bonus Coins Claimed!');
+          updateUI();
+        }
+      }
+    };
+  }
 
-  elBtnBoosterTurbo.onclick = async () => {
-    triggerHaptic('medium');
-    const success = await window.adsgramService.showRewardedVideo();
-    if (success) {
-      state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
-      triggerHaptic('success');
-      showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
-      updateUI();
-    }
-  };
+  if (elBtnBoosterTurbo) {
+    elBtnBoosterTurbo.onclick = async () => {
+      triggerHaptic('medium');
+      if (window.adsgramService) {
+        const success = await window.adsgramService.showRewardedVideo();
+        if (success) {
+          state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
+          triggerHaptic('success');
+          showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
+          updateUI();
+        }
+      }
+    };
+  }
 
   // --- UPGRADES ---
   function renderUpgrades() {
+    if (!elUpgradesContainer) return;
     elUpgradesContainer.innerHTML = '';
     state.upgrades.forEach(u => {
       const card = document.createElement('div');
       card.className = 'list-item-card';
       const cost = Math.round(u.cost * Math.pow(1.5, u.level));
-      const canAfford = state.coins >= cost;
+      const canAfford = (state.coins || 0) >= cost;
 
       card.innerHTML = `
         <div class="item-left">
@@ -396,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       const btnBuy = card.querySelector('.btn-buy');
-      if (canAfford) {
+      if (btnBuy && canAfford) {
         btnBuy.onclick = () => buyUpgrade(u.id, cost);
       }
       elUpgradesContainer.appendChild(card);
@@ -405,15 +425,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function buyUpgrade(id, cost) {
     const upg = state.upgrades.find(u => u.id === id);
-    if (!upg || state.coins < cost) return;
+    if (!upg || (state.coins || 0) < cost) return;
 
     state.coins -= cost;
     upg.level += 1;
 
     if (id === 'u_multitap') {
-      state.tapPower += 1;
+      state.tapPower = (state.tapPower || 1) + 1;
     } else if (id === 'u_energy') {
-      state.maxEnergy += 500;
+      state.maxEnergy = (state.maxEnergy || 1000) + 500;
       state.energy = state.maxEnergy;
     }
 
@@ -427,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- QUESTS ---
   function renderQuests() {
+    if (!elQuestsContainer) return;
     elQuestsContainer.innerHTML = '';
     state.quests.forEach(q => {
       const card = document.createElement('div');
@@ -451,10 +472,10 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       const btnClaim = card.querySelector('.btn-claim');
-      if (isComplete && !q.claimed) {
+      if (btnClaim && isComplete && !q.claimed) {
         btnClaim.onclick = () => {
           q.claimed = true;
-          state.coins += q.reward;
+          state.coins = (state.coins || 0) + q.reward;
           triggerHaptic('success');
           showRewardModal(q.reward, `Quest Completed: ${q.title}!`);
           updateUI();
@@ -466,15 +487,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- REWARD CELEBRATION MODAL ---
   function showRewardModal(coins, desc) {
-    elRewardPopupCoins.textContent = coins > 0 ? `+${coins.toLocaleString()} Coins` : 'Unlocked!';
-    elRewardPopupDesc.textContent = desc;
+    if (!elRewardModal) return;
+    if (elRewardPopupCoins) elRewardPopupCoins.textContent = coins > 0 ? `+${coins.toLocaleString()} Coins` : 'Unlocked!';
+    if (elRewardPopupDesc) elRewardPopupDesc.textContent = desc;
     elRewardModal.classList.remove('hidden');
   }
 
-  elBtnCollectReward.onclick = () => {
-    triggerHaptic('light');
-    elRewardModal.classList.add('hidden');
-  };
+  if (elBtnCollectReward && elRewardModal) {
+    elBtnCollectReward.onclick = () => {
+      triggerHaptic('light');
+      elRewardModal.classList.add('hidden');
+    };
+  }
 
   // --- TAB NAVIGATION ---
   const navItems = document.querySelectorAll('.bottom-nav .nav-item');
@@ -489,69 +513,83 @@ document.addEventListener('DOMContentLoaded', () => {
       tabPanels.forEach(p => p.classList.remove('active'));
 
       item.classList.add('active');
-      document.getElementById(targetTab)?.classList.add('active');
+      const panel = document.getElementById(targetTab);
+      if (panel) panel.classList.add('active');
     });
   });
 
   // --- REFERRALS ---
-  elBtnCopyRef.onclick = () => {
-    navigator.clipboard.writeText(elRefLinkInput.value);
-    triggerHaptic('light');
-    alert('Invite link copied to clipboard!');
-  };
+  if (elBtnCopyRef && elRefLinkInput) {
+    elBtnCopyRef.onclick = () => {
+      navigator.clipboard.writeText(elRefLinkInput.value);
+      triggerHaptic('light');
+      alert('Invite link copied to clipboard!');
+    };
+  }
 
-  elBtnShareTelegram.onclick = () => {
-    triggerHaptic('light');
-    const shareText = encodeURIComponent("🎮 Join Winwan Cyber Miner! Tap to mine coins, spin the lucky wheel and win rewards!");
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(elRefLinkInput.value)}&text=${shareText}`;
-    if (tg?.openTelegramLink) {
-      tg.openTelegramLink(shareUrl);
-    } else {
-      window.open(shareUrl, '_blank');
-    }
-  };
+  if (elBtnShareTelegram && elRefLinkInput) {
+    elBtnShareTelegram.onclick = () => {
+      triggerHaptic('light');
+      const shareText = encodeURIComponent("🎮 Join WINWAN Cyber Miner! Tap to mine coins, spin the lucky wheel and win rewards!");
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(elRefLinkInput.value)}&text=${shareText}`;
+      if (tg?.openTelegramLink) {
+        tg.openTelegramLink(shareUrl);
+      } else {
+        window.open(shareUrl, '_blank');
+      }
+    };
+  }
 
   // --- GAME GUIDE MODAL ---
-  elBtnInfo.onclick = () => {
-    triggerHaptic('light');
-    elInfoModal.classList.remove('hidden');
-  };
+  if (elBtnInfo && elInfoModal) {
+    elBtnInfo.onclick = () => {
+      triggerHaptic('light');
+      elInfoModal.classList.remove('hidden');
+    };
+  }
 
-  elBtnCloseInfo.onclick = () => {
-    triggerHaptic('light');
-    elInfoModal.classList.add('hidden');
-  };
+  if (elBtnCloseInfo && elInfoModal) {
+    elBtnCloseInfo.onclick = () => {
+      triggerHaptic('light');
+      elInfoModal.classList.add('hidden');
+    };
+  }
 
-  elBtnJoinCommunity.onclick = () => {
-    triggerHaptic('light');
-    const commUrl = 'https://t.me/Winwanbot';
-    if (tg?.openTelegramLink) {
-      tg.openTelegramLink(commUrl);
-    } else {
-      window.open(commUrl, '_blank');
-    }
-  };
+  if (elBtnJoinCommunity) {
+    elBtnJoinCommunity.onclick = () => {
+      triggerHaptic('light');
+      const commUrl = 'https://t.me/Winwanbot';
+      if (tg?.openTelegramLink) {
+        tg.openTelegramLink(commUrl);
+      } else {
+        window.open(commUrl, '_blank');
+      }
+    };
+  }
 
   // --- PASSIVE TIMERS ---
-  // Energy regeneration (10 energy / sec)
+  // Energy regeneration
   setInterval(() => {
     if (state.energy < state.maxEnergy) {
       state.energy = Math.min(state.maxEnergy, state.energy + 5);
-      const energyPct = (state.energy / state.maxEnergy) * 100;
-      elEnergyBarFill.style.width = `${energyPct}%`;
-      elEnergyText.textContent = `${state.energy}/${state.maxEnergy}`;
+      if (elEnergyBarFill) {
+        const energyPct = (state.energy / state.maxEnergy) * 100;
+        elEnergyBarFill.style.width = `${energyPct}%`;
+      }
+      if (elEnergyText) elEnergyText.textContent = `${state.energy}/${state.maxEnergy}`;
     }
   }, 1000);
 
-  // Auto-Miner Bot (Every 3 sec)
+  // Auto-Miner Bot
   setInterval(() => {
     const autobot = state.upgrades.find(u => u.id === 'u_autobot');
     if (autobot && autobot.level > 0) {
       const passiveIncome = autobot.level * 15;
-      state.coins += passiveIncome;
+      state.coins = (state.coins || 0) + passiveIncome;
       updateUI();
     }
   }, 3000);
 
+  // Initial render
   updateUI();
 });
