@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.adsgramService.setLogger((msg, type) => addDebugLog(msg, type));
-  window.adsgramService.init('42428');
+  window.adsgramService.init('42502');
 
   elInputBlockId.value = window.adsgramService.blockId;
   elSelectAdMode.value = window.adsgramService.mode;
