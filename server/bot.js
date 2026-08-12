@@ -1,5 +1,5 @@
 /**
- * Telegram Bot implementation for Winwan (@Winwanbot)
+ * Telegram Bot implementation for WINWAN (@Winwanbot)
  * Built with Grammy framework with safe HTML parsing and error handling.
  */
 
@@ -25,26 +25,25 @@ function escapeHtml(text) {
 bot.command('start', async (ctx) => {
   try {
     const user = ctx.from;
-    const name = escapeHtml(user?.first_name || 'Player');
+    const name = escapeHtml(user?.first_name || 'Miner');
 
     const welcomeHtml = 
-`👋 <b>Welcome to Winwan, ${name}!</b> 🚀
+`🎮 <b>Welcome to WINWAN Cyber Miner, ${name}!</b> ⚡
 
-Winwan is a next-generation <b>Watch-to-Earn Telegram Mini App</b> powered by <b>Adsgram</b>.
+Mine cyber coins, spin the lucky wheel daily, and upgrade your rig to become the top Cyber Lord!
 
-💰 <b>How to earn:</b>
-1️⃣ Tap <b>🚀 Open Mini App &amp; Earn</b> below.
-2️⃣ Watch short sponsored Adsgram video ads.
-3️⃣ Collect coins, upgrade multipliers &amp; complete daily quests!
-4️⃣ Invite friends to receive 20% bonus coins!
+💎 <b>Game Highlights:</b>
+• <b>3D Tap-to-Mine</b>: Tap the core to extract coins
+• <b>🎰 Lucky Wheel</b>: Daily free spins for jackpots
+• <b>⚡ Rig Upgrades</b>: Boost your tap yield & energy pool
+• <b>👥 Squads</b>: Earn 20% commission from your friends
 
-⚡ <i>Ready to start earning rewards?</i>`;
+👇 <i>Tap below to launch the game:</i>`;
 
     const keyboard = new InlineKeyboard()
-      .webApp('🚀 Open Mini App & Earn', 'https://agrim777.github.io/winwan-telegram-adsgram-bot/')
+      .webApp('🎮 Play WINWAN Game', miniappUrl)
       .row()
-      .url('📢 Adsgram Network', 'https://adsgram.ai')
-      .url('💬 Community', 'https://t.me/telegram');
+      .webApp('🎰 Daily Lucky Wheel', miniappUrl);
 
     await ctx.reply(welcomeHtml, {
       parse_mode: 'HTML',
@@ -52,27 +51,27 @@ Winwan is a next-generation <b>Watch-to-Earn Telegram Mini App</b> powered by <b
     });
   } catch (err) {
     console.error('Error handling /start command:', err);
-    await ctx.reply('👋 Welcome to Winwan! Tap the button below to start earning.', {
-      reply_markup: new InlineKeyboard().webApp('🚀 Open Mini App', 'https://agrim777.github.io/winwan-telegram-adsgram-bot/')
+    await ctx.reply('🎮 Welcome to WINWAN! Tap below to play.', {
+      reply_markup: new InlineKeyboard().webApp('🎮 Play Game', miniappUrl)
     });
   }
 });
 
-// /earn Command
-bot.command('earn', async (ctx) => {
+// /spin Command
+bot.command('spin', async (ctx) => {
   try {
     const keyboard = new InlineKeyboard()
-      .webApp('🪙 Watch Adsgram Ads', 'https://agrim777.github.io/winwan-telegram-adsgram-bot/');
+      .webApp('🎰 Spin the Lucky Wheel', miniappUrl);
 
     await ctx.reply(
-      `🎬 <b>Watch Adsgram Ads &amp; Earn Coins!</b>\n\nTap below to launch the Mini App and claim your ad rewards immediately:`,
+      `🎰 <b>Daily Lucky Wheel is Ready!</b>\n\nSpin the wheel to win instant coin jackpots and 2x Turbo mining boosters:`,
       {
         parse_mode: 'HTML',
         reply_markup: keyboard,
       }
     );
   } catch (err) {
-    console.error('Error handling /earn command:', err);
+    console.error('Error handling /spin command:', err);
   }
 });
 
@@ -80,16 +79,19 @@ bot.command('earn', async (ctx) => {
 bot.command('help', async (ctx) => {
   try {
     const helpHtml = 
-`ℹ️ <b>Winwan Bot Commands:</b>
+`ℹ️ <b>WINWAN Game Guide:</b>
 
-/start - Open the main menu & launch the Mini App
-/earn - Direct shortcut to watch Adsgram ads
-/help - View this guide and support information
+/start - Open the main menu & launch the game
+/spin - Direct link to the Daily Lucky Wheel
+/help - View this guide
 
-🌐 <b>Adsgram Monetization:</b>
-Adsgram is the leading Telegram ad network for Mini Apps. Earn coins for every full video ad watched!`;
+🎮 <b>How to Play:</b>
+Tap the Cyber Core in the game to mine coins. Upgrade your energy cell and multitap to increase your earnings!`;
 
-    await ctx.reply(helpHtml, { parse_mode: 'HTML' });
+    const keyboard = new InlineKeyboard()
+      .webApp('🎮 Launch Game', miniappUrl);
+
+    await ctx.reply(helpHtml, { parse_mode: 'HTML', reply_markup: keyboard });
   } catch (err) {
     console.error('Error handling /help command:', err);
   }
@@ -98,9 +100,9 @@ Adsgram is the leading Telegram ad network for Mini Apps. Earn coins for every f
 // Any other message fallback
 bot.on('message:text', async (ctx) => {
   const keyboard = new InlineKeyboard()
-    .webApp('🚀 Open Winwan Mini App', 'https://agrim777.github.io/winwan-telegram-adsgram-bot/');
+    .webApp('🎮 Play WINWAN Game', miniappUrl);
 
-  await ctx.reply(`👋 Hi there! Tap below to open the Winwan Mini App and start earning:`, {
+  await ctx.reply(`👋 Hi! Tap below to launch WINWAN Cyber Miner:`, {
     reply_markup: keyboard
   });
 });
