@@ -6,9 +6,9 @@
 class AdsgramService {
   constructor() {
     let savedBlockId = localStorage.getItem('winwan_adsgram_block_id');
-    if (!savedBlockId || savedBlockId === '2924' || savedBlockId === '42427') {
-      savedBlockId = '42428';
-      localStorage.setItem('winwan_adsgram_block_id', '42428');
+    if (!savedBlockId || savedBlockId === '2924' || savedBlockId === '42427' || savedBlockId === '42428') {
+      savedBlockId = '42502';
+      localStorage.setItem('winwan_adsgram_block_id', '42502');
     }
     this.blockId = savedBlockId;
     this.mode = localStorage.getItem('winwan_ads_mode') || 'adsgram_live'; // 'adsgram_live' | 'simulator'
