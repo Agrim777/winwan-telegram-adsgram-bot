@@ -94,15 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const elStatFriendsCount = document.getElementById('statFriendsCount');
   const elStatReferralBonus = document.getElementById('statReferralBonus');
 
-  // Modals
-  const elSettingsModal = document.getElementById('settingsModal');
-  const elBtnSettings = document.getElementById('btnSettings');
-  const elBtnCloseSettings = document.getElementById('btnCloseSettings');
-  const elInputBlockId = document.getElementById('inputBlockId');
-  const elSelectAdMode = document.getElementById('selectAdMode');
-  const elBtnSaveSettings = document.getElementById('btnSaveSettings');
-  const elBtnResetData = document.getElementById('btnResetData');
-  const elDebugLog = document.getElementById('debugLog');
+  // Info Modal
+  const elInfoModal = document.getElementById('infoModal');
+  const elBtnInfo = document.getElementById('btnInfo');
+  const elBtnCloseInfo = document.getElementById('btnCloseInfo');
+  const elBtnJoinCommunity = document.getElementById('btnJoinCommunity');
   const elRewardModal = document.getElementById('rewardModal');
   const elRewardPopupTitle = document.getElementById('rewardPopupTitle');
   const elRewardPopupCoins = document.getElementById('rewardPopupCoins');
@@ -515,38 +511,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- SETTINGS MODAL ---
-  elBtnSettings.onclick = () => {
+  // --- GAME GUIDE MODAL ---
+  elBtnInfo.onclick = () => {
     triggerHaptic('light');
-    elSettingsModal.classList.remove('hidden');
+    elInfoModal.classList.remove('hidden');
   };
 
-  elBtnCloseSettings.onclick = () => {
+  elBtnCloseInfo.onclick = () => {
     triggerHaptic('light');
-    elSettingsModal.classList.add('hidden');
+    elInfoModal.classList.add('hidden');
   };
 
-  elBtnSaveSettings.onclick = () => {
-    const newBlockId = elInputBlockId.value.trim() || '42428';
-    const newMode = elSelectAdMode.value;
-
-    window.adsgramService.mode = newMode;
-    localStorage.setItem('winwan_ads_mode', newMode);
-    window.adsgramService.init(newBlockId);
-
-    triggerHaptic('success');
-    alert('Settings saved!');
-    elSettingsModal.classList.add('hidden');
-  };
-
-  elBtnResetData.onclick = () => {
-    if (confirm('Reset all game progress?')) {
-      localStorage.removeItem('winwan_cyber_state');
-      state = JSON.parse(JSON.stringify(defaultState));
-      updateUI();
-      triggerHaptic('warning');
-      alert('Game progress has been reset.');
-      elSettingsModal.classList.add('hidden');
+  elBtnJoinCommunity.onclick = () => {
+    triggerHaptic('light');
+    const commUrl = 'https://t.me/Winwanbot';
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(commUrl);
+    } else {
+      window.open(commUrl, '_blank');
     }
   };
 
