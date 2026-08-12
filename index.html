@@ -38,8 +38,8 @@
         </div>
       </div>
       <div class="header-actions">
-        <button id="btnSettings" class="icon-btn" title="Settings & Adsgram Config">
-          <i class="fa-solid fa-gear"></i>
+        <button id="btnInfo" class="icon-btn" title="Game Rules & Guide">
+          <i class="fa-solid fa-circle-question"></i>
         </button>
       </div>
     </header>
@@ -251,46 +251,34 @@
       </button>
     </nav>
 
-    <!-- SETTINGS & ADSGRAM DEBUG MODAL -->
-    <div id="settingsModal" class="modal-overlay hidden">
+    <!-- GAME GUIDE & COMMUNITY MODAL -->
+    <div id="infoModal" class="modal-overlay hidden">
       <div class="modal-card">
         <div class="modal-header">
-          <h3><i class="fa-solid fa-sliders"></i> Game Settings & Adsgram</h3>
-          <button id="btnCloseSettings" class="close-btn">&times;</button>
+          <h3><i class="fa-solid fa-gamepad text-cyan"></i> About WINWAN Cyber Miner</h3>
+          <button id="btnCloseInfo" class="close-btn">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="form-group">
-            <label for="inputBlockId">Adsgram Placement Block ID</label>
-            <input type="text" id="inputBlockId" placeholder="42502" />
-            <small class="help-text">Publisher Unit ID from <a href="https://partner.adsgram.ai" target="_blank">partner.adsgram.ai</a></small>
+          <div class="guide-section">
+            <h4>🎮 How to Play</h4>
+            <p>Tap the 3D Cyber Core on the main screen to mine coins. Use your energy strategically and upgrade your rig to increase your tapping power!</p>
           </div>
-
-          <div class="form-group">
-            <label for="selectAdMode">Ads Mode</label>
-            <select id="selectAdMode">
-              <option value="adsgram_live">Adsgram Live SDK</option>
-              <option value="simulator">Interactive Simulator (Browser Testing)</option>
-            </select>
+          <div class="guide-section">
+            <h4>🎰 Daily Lucky Wheel</h4>
+            <p>Spin the wheel once per day to win massive coin jackpots, 2x Turbo multipliers, and exclusive rewards.</p>
           </div>
-
-          <div class="form-group">
-            <label>Haptic Vibration Feedback</label>
-            <div class="toggle-switch">
-              <input type="checkbox" id="toggleHaptics" checked />
-              <label for="toggleHaptics"></label>
-            </div>
+          <div class="guide-section">
+            <h4>⚡ Boosters</h4>
+            <p>Running low on energy? Activate optional boosters to instantly recharge your energy cell or double your mining yield.</p>
           </div>
-
-          <div class="form-group">
-            <label>Adsgram Live Logs</label>
-            <div id="debugLog" class="debug-console">
-              <div class="log-entry system">[System] Winwan Cyber Miner ready</div>
-            </div>
+          <div class="guide-section">
+            <h4>👥 Squad Referral</h4>
+            <p>Invite friends to join your mining squad and earn 20% passive mining commissions.</p>
           </div>
-
           <div class="modal-footer-actions">
-            <button id="btnSaveSettings" class="btn-primary full-width">Save Settings</button>
-            <button id="btnResetData" class="btn-danger full-width">Reset Game Progress</button>
+            <button id="btnJoinCommunity" class="btn-primary full-width">
+              <i class="fa-brands fa-telegram"></i> Official Telegram Community
+            </button>
           </div>
         </div>
       </div>
