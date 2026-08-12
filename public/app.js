@@ -1,9 +1,9 @@
 /**
- * Winwan - Main Application Logic & Gamification Engine
+ * Winwan - Cyber Miner & Lucky Wheel Game Engine
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Telegram WebApp Instance
+  // Telegram WebApp Initialization
   const tg = window.Telegram?.WebApp;
   if (tg) {
     tg.ready();
@@ -16,41 +16,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- APPLICATION STATE ---
+  // --- GAME STATE ---
   const defaultState = {
-    coins: 250,
-    xp: 0,
+    coins: 500,
+    tapPower: 1,
+    energy: 1000,
+    maxEnergy: 1000,
+    turboActiveUntil: 0,
+    totalTaps: 0,
+    spinsAvailable: 3,
+    lastSpinDate: null,
     level: 1,
-    multiplier: 1.0,
-    energy: 10,
-    maxEnergy: 10,
-    adsWatched: 0,
-    streak: 1,
-    lastDailyBonusClaim: null,
-    lastAdWatchTime: null,
     invitedFriends: 0,
     referralEarnings: 0,
-    quests: [
-      { id: 'q1', title: 'Watch 3 Ads', desc: 'Watch 3 rewarded video ads', reward: 300, target: 3, progress: 0, claimed: false, icon: 'fa-film' },
-      { id: 'q2', title: 'Power-Up Rookie', desc: 'Purchase any 1 multiplier upgrade', reward: 200, target: 1, progress: 0, claimed: false, icon: 'fa-bolt' },
-      { id: 'q3', title: 'Daily Devotee', desc: 'Claim your daily check-in bonus', reward: 150, target: 1, progress: 0, claimed: false, icon: 'fa-gift' },
-      { id: 'q4', title: 'Watch Marathon', desc: 'Watch 10 rewarded ads in total', reward: 1000, target: 10, progress: 0, claimed: false, icon: 'fa-trophy' }
-    ],
     upgrades: [
-      { id: 'u1', name: '2x Ad Multiplier', desc: 'Double all coin earnings from ads', cost: 500, multiplierAdd: 1.0, owned: false, icon: 'fa-coins' },
-      { id: 'u2', name: 'Speed Recharge', desc: 'Refill energy 2x faster', cost: 1000, multiplierAdd: 0.5, owned: false, icon: 'fa-battery-charging' },
-      { id: 'u3', name: 'Golden Sponsor', desc: 'Receive +500 base coins per ad', cost: 2500, multiplierAdd: 2.0, owned: false, icon: 'fa-crown' }
+      { id: 'u_multitap', name: 'Multi-Core Tap', desc: '+1 Coin mined per tap', cost: 200, level: 1, icon: 'fa-hand-pointer' },
+      { id: 'u_energy', name: 'Energy Cell Max', desc: '+500 Max Energy capacity', cost: 400, level: 1, icon: 'fa-bolt' },
+      { id: 'u_autobot', name: 'Auto-Mining Bot', desc: 'Mines +5 Coins/sec automatically', cost: 1500, level: 0, icon: 'fa-robot' }
+    ],
+    quests: [
+      { id: 'q_taps_100', title: 'Tap 100 Times', desc: 'Mine coins 100 times in the arena', reward: 500, target: 100, progress: 0, claimed: false, icon: 'fa-cube' },
+      { id: 'q_upgrade_1', title: 'Upgrade Miner', desc: 'Purchase any rig upgrade', reward: 400, target: 1, progress: 0, claimed: false, icon: 'fa-bolt' },
+      { id: 'q_spin_wheel', title: 'Spin Master', desc: 'Spin the Lucky Wheel 1 time', reward: 300, target: 1, progress: 0, claimed: false, icon: 'fa-dharmachakra' },
+      { id: 'q_taps_500', title: 'Cyber Tycoon', desc: 'Reach 500 total taps', reward: 2500, target: 500, progress: 0, claimed: false, icon: 'fa-trophy' }
     ]
   };
 
-  let state = JSON.parse(localStorage.getItem('winwan_app_state')) || defaultState;
+  let state = JSON.parse(localStorage.getItem('winwan_cyber_state')) || defaultState;
 
-  // Save State Helper
   function saveState() {
-    localStorage.setItem('winwan_app_state', JSON.stringify(state));
+    localStorage.setItem('winwan_cyber_state', JSON.stringify(state));
   }
 
-  // Trigger Telegram Haptic
+  // Telegram Haptics Helper
   function triggerHaptic(type = 'light') {
     const hapticsEnabled = document.getElementById('toggleHaptics')?.checked ?? true;
     if (!hapticsEnabled || !tg?.HapticFeedback) return;
@@ -65,25 +63,29 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         tg.HapticFeedback.impactOccurred('light');
       }
-    } catch (e) {
-      console.warn('Haptic trigger error:', e);
-    }
+    } catch (e) {}
   }
 
   // --- UI ELEMENTS ---
   const elUserName = document.getElementById('userName');
   const elUserAvatar = document.getElementById('userAvatar');
   const elUserLevelBadge = document.getElementById('userLevelBadge');
+  const elUserRankTitle = document.getElementById('userRankTitle');
   const elCoinBalance = document.getElementById('coinBalance');
-  const elStatAdsWatched = document.getElementById('statAdsWatched');
-  const elStatMultiplier = document.getElementById('statMultiplier');
-  const elStatStreak = document.getElementById('statStreak');
+  const elLeagueCurrent = document.getElementById('leagueCurrent');
+  const elLeagueNext = document.getElementById('leagueNext');
+  const elLeagueBarFill = document.getElementById('leagueBarFill');
+  const elTapCore = document.getElementById('tapCore');
   const elEnergyText = document.getElementById('energyText');
   const elEnergyBarFill = document.getElementById('energyBarFill');
-  const elBtnWatchRewarded = document.getElementById('btnWatchRewarded');
-  const elBtnShowInterstitial = document.getElementById('btnShowInterstitial');
-  const elBtnDailyBonus = document.getElementById('btnDailyBonus');
-  const elDailyBonusStatus = document.getElementById('dailyBonusStatus');
+  const elTapPowerDisplay = document.getElementById('tapPowerDisplay');
+  const elBtnBoosterEnergy = document.getElementById('btnBoosterEnergy');
+  const elBtnBoosterTurbo = document.getElementById('btnBoosterTurbo');
+  const elSpinsAvailable = document.getElementById('spinsAvailable');
+  const elBtnSpinWheel = document.getElementById('btnSpinWheel');
+  const elBtnExtraSpinAd = document.getElementById('btnExtraSpinAd');
+  const elWheelContainer = document.getElementById('wheelContainer');
+  const elWheelCanvas = document.getElementById('wheelCanvas');
   const elQuestsContainer = document.getElementById('questsContainer');
   const elUpgradesContainer = document.getElementById('upgradesContainer');
   const elRefLinkInput = document.getElementById('refLinkInput');
@@ -91,8 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const elBtnShareTelegram = document.getElementById('btnShareTelegram');
   const elStatFriendsCount = document.getElementById('statFriendsCount');
   const elStatReferralBonus = document.getElementById('statReferralBonus');
-  
-  // Modals & Settings
+
+  // Modals
   const elSettingsModal = document.getElementById('settingsModal');
   const elBtnSettings = document.getElementById('btnSettings');
   const elBtnCloseSettings = document.getElementById('btnCloseSettings');
@@ -102,14 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const elBtnResetData = document.getElementById('btnResetData');
   const elDebugLog = document.getElementById('debugLog');
   const elRewardModal = document.getElementById('rewardModal');
+  const elRewardPopupTitle = document.getElementById('rewardPopupTitle');
   const elRewardPopupCoins = document.getElementById('rewardPopupCoins');
   const elRewardPopupDesc = document.getElementById('rewardPopupDesc');
   const elBtnCollectReward = document.getElementById('btnCollectReward');
 
-  // --- INITIALIZE TELEGRAM USER INFO ---
+  // --- TELEGRAM USER PROFILE ---
   const user = tg?.initDataUnsafe?.user;
-  const botUsername = 'Winwanbot';
-  const userId = user?.id || 'demo_user_' + Math.floor(Math.random() * 10000);
+  const userId = user?.id || 'miner_' + Math.floor(Math.random() * 10000);
   
   if (user) {
     elUserName.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
@@ -120,9 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Referral & Direct App Link Setup
-  const inviteUrl = `https://t.me/Winwanbot/Winwan?startapp=ref_${userId}`;
-  elRefLinkInput.value = inviteUrl;
+  elRefLinkInput.value = `https://t.me/Winwanbot/Winwan?startapp=ref_${userId}`;
 
   // --- LOGGING SETUP ---
   function addDebugLog(msg, type = 'system') {
@@ -136,55 +136,300 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.adsgramService.setLogger((msg, type) => addDebugLog(msg, type));
-  window.adsgramService.init();
+  window.adsgramService.init('42428');
 
-  // Load Settings into Inputs
   elInputBlockId.value = window.adsgramService.blockId;
   elSelectAdMode.value = window.adsgramService.mode;
 
-  // --- RENDER APP STATE ---
-  function updateUI() {
-    // Balance & Stats
-    elCoinBalance.textContent = state.coins.toLocaleString();
-    elStatAdsWatched.textContent = state.adsWatched;
-    elStatMultiplier.textContent = state.multiplier.toFixed(1) + 'x';
-    elStatStreak.textContent = `${state.streak} ${state.streak === 1 ? 'Day' : 'Days'}`;
-    elUserLevelBadge.textContent = `Lv.${state.level}`;
+  // --- LEAGUE RANKS ---
+  const leagues = [
+    { name: 'Bronze', threshold: 0, icon: 'fa-shield-halved' },
+    { name: 'Silver', threshold: 5000, icon: 'fa-medal' },
+    { name: 'Gold', threshold: 25000, icon: 'fa-crown' },
+    { name: 'Platinum', threshold: 100000, icon: 'fa-gem' },
+    { name: 'Cyber Lord', threshold: 500000, icon: 'fa-dragon' }
+  ];
 
-    // Energy
-    elEnergyText.textContent = `${state.energy}/${state.maxEnergy} Energy`;
+  function getLeague(coins) {
+    for (let i = leagues.length - 1; i >= 0; i--) {
+      if (coins >= leagues[i].threshold) return { ...leagues[i], index: i };
+    }
+    return { ...leagues[0], index: 0 };
+  }
+
+  // --- UPDATE UI ---
+  function updateUI() {
+    elCoinBalance.textContent = state.coins.toLocaleString();
+
+    // League progress
+    const curLeague = getLeague(state.coins);
+    const nextLeague = leagues[curLeague.index + 1] || null;
+    elUserRankTitle.innerHTML = `<i class="fa-solid ${curLeague.icon}"></i> ${curLeague.name} League`;
+    elLeagueCurrent.textContent = curLeague.name;
+
+    if (nextLeague) {
+      elLeagueNext.textContent = `${nextLeague.name} (${nextLeague.threshold.toLocaleString()})`;
+      const progress = ((state.coins - curLeague.threshold) / (nextLeague.threshold - curLeague.threshold)) * 100;
+      elLeagueBarFill.style.width = `${Math.max(4, Math.min(100, progress))}%`;
+    } else {
+      elLeagueNext.textContent = 'MAX RANK';
+      elLeagueBarFill.style.width = '100%';
+    }
+
+    // Tap Power with Turbo Multiplier
+    const isTurbo = Date.now() < state.turboActiveUntil;
+    const currentPower = isTurbo ? state.tapPower * 2 : state.tapPower;
+    elTapPowerDisplay.textContent = isTurbo ? `${currentPower} (🔥 2X TURBO)` : `${currentPower}`;
+
+    // Energy Bar
+    elEnergyText.textContent = `${state.energy}/${state.maxEnergy}`;
     const energyPct = (state.energy / state.maxEnergy) * 100;
     elEnergyBarFill.style.width = `${energyPct}%`;
 
-    // Watch Ad Button State
-    if (state.energy <= 0) {
-      elBtnWatchRewarded.disabled = true;
-      elBtnWatchRewarded.querySelector('.btn-text').textContent = 'Out of Energy (Refilling...)';
-    } else {
-      elBtnWatchRewarded.disabled = false;
-      elBtnWatchRewarded.querySelector('.btn-text').textContent = 'Watch Rewarded Ad';
-    }
+    // Spins
+    elSpinsAvailable.textContent = state.spinsAvailable;
+    elBtnSpinWheel.disabled = state.spinsAvailable <= 0;
 
-    // Daily Bonus State
-    const today = new Date().toDateString();
-    if (state.lastDailyBonusClaim === today) {
-      elDailyBonusStatus.textContent = 'Claimed for today ✓';
-      document.getElementById('dailyBonusIcon').className = 'fa-solid fa-check-circle action-arrow ready';
-    } else {
-      elDailyBonusStatus.textContent = 'Claim +250 free coins now!';
-      document.getElementById('dailyBonusIcon').className = 'fa-solid fa-gift action-arrow';
-    }
-
-    // Friends Tab
+    // Friends
     elStatFriendsCount.textContent = state.invitedFriends;
     elStatReferralBonus.textContent = state.referralEarnings.toLocaleString();
 
-    renderQuests();
     renderUpgrades();
+    renderQuests();
     saveState();
   }
 
-  // --- RENDER QUESTS ---
+  // --- TAP MINING ENGINE ---
+  function handleTap(event) {
+    if (state.energy <= 0) {
+      triggerHaptic('warning');
+      return;
+    }
+
+    const isTurbo = Date.now() < state.turboActiveUntil;
+    const power = isTurbo ? state.tapPower * 2 : state.tapPower;
+    const energyCost = Math.min(state.energy, power);
+
+    state.coins += power;
+    state.energy -= energyCost;
+    state.totalTaps += 1;
+
+    triggerHaptic('light');
+
+    // Create floating particle
+    const rect = elTapCore.getBoundingClientRect();
+    const touch = event.touches ? event.touches[0] : event;
+    const x = touch.clientX || (rect.left + rect.width / 2);
+    const y = touch.clientY || (rect.top + rect.height / 2);
+
+    createFloatingParticle(x, y, `+${power}`);
+
+    // Update quest progress
+    const q1 = state.quests.find(q => q.id === 'q_taps_100');
+    if (q1) q1.progress = Math.min(q1.target, state.totalTaps);
+
+    const q4 = state.quests.find(q => q.id === 'q_taps_500');
+    if (q4) q4.progress = Math.min(q4.target, state.totalTaps);
+
+    updateUI();
+  }
+
+  function createFloatingParticle(clientX, clientY, text) {
+    const particle = document.createElement('div');
+    particle.className = 'tap-particle';
+    particle.textContent = text;
+    particle.style.left = `${clientX - 15 + (Math.random() * 20 - 10)}px`;
+    particle.style.top = `${clientY - 20}px`;
+    document.body.appendChild(particle);
+
+    setTimeout(() => {
+      if (particle.parentNode) particle.parentNode.removeChild(particle);
+    }, 800);
+  }
+
+  elTapCore.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.touches.length; i++) {
+      handleTap(e.touches[i]);
+    }
+  }, { passive: false });
+
+  elTapCore.addEventListener('mousedown', (e) => {
+    handleTap(e);
+  });
+
+  // --- LUCKY WHEEL CANVAS ENGINE ---
+  const wheelSlices = [
+    { label: '+250 Coins', value: 250, type: 'coins', color: '#1e293b' },
+    { label: '+1000 Coins', value: 1000, type: 'coins', color: '#06b6d4' },
+    { label: '+500 Coins', value: 500, type: 'coins', color: '#1e293b' },
+    { label: '🔥 2X Turbo', value: 'turbo', type: 'turbo', color: '#8b5cf6' },
+    { label: '+100 Coins', value: 100, type: 'coins', color: '#1e293b' },
+    { label: '💎 5000 JACKPOT', value: 5000, type: 'coins', color: '#f59e0b' }
+  ];
+
+  let currentWheelAngle = 0;
+  let isSpinning = false;
+
+  function drawWheel() {
+    const ctx = elWheelCanvas.getContext('2d');
+    const numSlices = wheelSlices.length;
+    const arc = (2 * Math.PI) / numSlices;
+    const radius = elWheelCanvas.width / 2;
+
+    ctx.clearRect(0, 0, elWheelCanvas.width, elWheelCanvas.height);
+
+    wheelSlices.forEach((slice, i) => {
+      const angle = i * arc;
+      ctx.beginPath();
+      ctx.fillStyle = slice.color;
+      ctx.moveTo(radius, radius);
+      ctx.arc(radius, radius, radius, angle, angle + arc);
+      ctx.lineTo(radius, radius);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.stroke();
+
+      // Text label
+      ctx.save();
+      ctx.translate(radius, radius);
+      ctx.rotate(angle + arc / 2);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px Outfit, sans-serif';
+      ctx.fillText(slice.label, radius - 15, 4);
+      ctx.restore();
+    });
+  }
+
+  drawWheel();
+
+  elBtnSpinWheel.onclick = () => {
+    if (isSpinning || state.spinsAvailable <= 0) return;
+
+    isSpinning = true;
+    state.spinsAvailable -= 1;
+    triggerHaptic('medium');
+
+    const winningIndex = Math.floor(Math.random() * wheelSlices.length);
+    const sliceAngle = 360 / wheelSlices.length;
+    const targetRotation = (360 * 5) + (360 - (winningIndex * sliceAngle + sliceAngle / 2)) - 90;
+
+    currentWheelAngle += targetRotation;
+    elWheelContainer.style.transform = `rotate(${currentWheelAngle}deg)`;
+
+    setTimeout(() => {
+      isSpinning = false;
+      const prize = wheelSlices[winningIndex];
+
+      if (prize.type === 'coins') {
+        state.coins += prize.value;
+        showRewardModal(prize.value, `Lucky Wheel Prize: ${prize.label}!`);
+      } else if (prize.type === 'turbo') {
+        state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
+        showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
+      }
+
+      // Quest progress
+      const q3 = state.quests.find(q => q.id === 'q_spin_wheel');
+      if (q3) q3.progress = 1;
+
+      triggerHaptic('success');
+      updateUI();
+    }, 4100);
+
+    updateUI();
+  };
+
+  // Extra Spins via Adsgram Video Ad
+  elBtnExtraSpinAd.onclick = async () => {
+    triggerHaptic('medium');
+    const success = await window.adsgramService.showRewardedVideo();
+    if (success) {
+      state.spinsAvailable += 2;
+      triggerHaptic('success');
+      showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
+      updateUI();
+    }
+  };
+
+  // --- BOOSTERS (ADSGRAM REWARDED ADS) ---
+  elBtnBoosterEnergy.onclick = async () => {
+    triggerHaptic('medium');
+    const success = await window.adsgramService.showRewardedVideo();
+    if (success) {
+      state.energy = state.maxEnergy;
+      state.coins += 250;
+      triggerHaptic('success');
+      showRewardModal(250, '⚡ Instant Full Energy Refill + 250 Bonus Coins Claimed!');
+      updateUI();
+    }
+  };
+
+  elBtnBoosterTurbo.onclick = async () => {
+    triggerHaptic('medium');
+    const success = await window.adsgramService.showRewardedVideo();
+    if (success) {
+      state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
+      triggerHaptic('success');
+      showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
+      updateUI();
+    }
+  };
+
+  // --- UPGRADES ---
+  function renderUpgrades() {
+    elUpgradesContainer.innerHTML = '';
+    state.upgrades.forEach(u => {
+      const card = document.createElement('div');
+      card.className = 'list-item-card';
+      const cost = Math.round(u.cost * Math.pow(1.5, u.level));
+      const canAfford = state.coins >= cost;
+
+      card.innerHTML = `
+        <div class="item-left">
+          <div class="item-icon-box"><i class="fa-solid ${u.icon}"></i></div>
+          <div class="item-info">
+            <h4>${u.name} <small class="text-cyan">(Lv.${u.level})</small></h4>
+            <p>${u.desc}</p>
+          </div>
+        </div>
+        <button class="btn-buy" ${canAfford ? '' : 'disabled'} data-upgrade-id="${u.id}">
+          ${cost.toLocaleString()} Coins
+        </button>
+      `;
+
+      const btnBuy = card.querySelector('.btn-buy');
+      if (canAfford) {
+        btnBuy.onclick = () => buyUpgrade(u.id, cost);
+      }
+      elUpgradesContainer.appendChild(card);
+    });
+  }
+
+  function buyUpgrade(id, cost) {
+    const upg = state.upgrades.find(u => u.id === id);
+    if (!upg || state.coins < cost) return;
+
+    state.coins -= cost;
+    upg.level += 1;
+
+    if (id === 'u_multitap') {
+      state.tapPower += 1;
+    } else if (id === 'u_energy') {
+      state.maxEnergy += 500;
+      state.energy = state.maxEnergy;
+    }
+
+    const q2 = state.quests.find(q => q.id === 'q_upgrade_1');
+    if (q2) q2.progress = 1;
+
+    triggerHaptic('success');
+    showRewardModal(0, `Upgrade Unlocked: ${upg.name} (Lv.${upg.level})!`);
+    updateUI();
+  }
+
+  // --- QUESTS ---
   function renderQuests() {
     elQuestsContainer.innerHTML = '';
     state.quests.forEach(q => {
@@ -204,79 +449,28 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
         </div>
-        <button class="btn-claim" ${q.claimed ? 'disabled' : (isComplete ? '' : 'disabled')} data-quest-id="${q.id}">
+        <button class="btn-claim" ${q.claimed ? 'disabled' : (isComplete ? '' : 'disabled')}>
           ${q.claimed ? 'Claimed' : (isComplete ? 'Claim' : `${q.progress}/${q.target}`)}
         </button>
       `;
 
       const btnClaim = card.querySelector('.btn-claim');
       if (isComplete && !q.claimed) {
-        btnClaim.onclick = () => claimQuest(q.id);
+        btnClaim.onclick = () => {
+          q.claimed = true;
+          state.coins += q.reward;
+          triggerHaptic('success');
+          showRewardModal(q.reward, `Quest Completed: ${q.title}!`);
+          updateUI();
+        };
       }
       elQuestsContainer.appendChild(card);
     });
   }
 
-  function claimQuest(questId) {
-    const quest = state.quests.find(q => q.id === questId);
-    if (!quest || quest.claimed || quest.progress < quest.target) return;
-
-    quest.claimed = true;
-    state.coins += quest.reward;
-    triggerHaptic('success');
-    showRewardModal(quest.reward, `Quest Completed: ${quest.title}`);
-    updateUI();
-  }
-
-  // --- RENDER UPGRADES ---
-  function renderUpgrades() {
-    elUpgradesContainer.innerHTML = '';
-    state.upgrades.forEach(u => {
-      const card = document.createElement('div');
-      card.className = 'list-item-card';
-      const canAfford = state.coins >= u.cost;
-
-      card.innerHTML = `
-        <div class="item-left">
-          <div class="item-icon-box"><i class="fa-solid ${u.icon}"></i></div>
-          <div class="item-info">
-            <h4>${u.name}</h4>
-            <p>${u.desc}</p>
-          </div>
-        </div>
-        <button class="btn-buy" ${u.owned ? 'disabled' : (canAfford ? '' : 'disabled')} data-upgrade-id="${u.id}">
-          ${u.owned ? 'Active ✓' : `${u.cost.toLocaleString()} Coins`}
-        </button>
-      `;
-
-      const btnBuy = card.querySelector('.btn-buy');
-      if (!u.owned && canAfford) {
-        btnBuy.onclick = () => buyUpgrade(u.id);
-      }
-      elUpgradesContainer.appendChild(card);
-    });
-  }
-
-  function buyUpgrade(upgradeId) {
-    const upg = state.upgrades.find(u => u.id === upgradeId);
-    if (!upg || upg.owned || state.coins < upg.cost) return;
-
-    state.coins -= upg.cost;
-    upg.owned = true;
-    state.multiplier += upg.multiplierAdd;
-
-    // Advance quest progress
-    const q2 = state.quests.find(q => q.id === 'q2');
-    if (q2) q2.progress = Math.min(q2.target, q2.progress + 1);
-
-    triggerHaptic('success');
-    showRewardModal(0, `Upgrade Unlocked: ${upg.name}! Multiplier is now ${state.multiplier.toFixed(1)}x`);
-    updateUI();
-  }
-
   // --- REWARD CELEBRATION MODAL ---
   function showRewardModal(coins, desc) {
-    elRewardPopupCoins.textContent = coins > 0 ? `+${coins} Coins` : 'Unlocked!';
+    elRewardPopupCoins.textContent = coins > 0 ? `+${coins.toLocaleString()} Coins` : 'Unlocked!';
     elRewardPopupDesc.textContent = desc;
     elRewardModal.classList.remove('hidden');
   }
@@ -284,89 +478,6 @@ document.addEventListener('DOMContentLoaded', () => {
   elBtnCollectReward.onclick = () => {
     triggerHaptic('light');
     elRewardModal.classList.add('hidden');
-  };
-
-  // --- ADSGRAM REWARDED AD HANDLER ---
-  elBtnWatchRewarded.onclick = async () => {
-    if (state.energy <= 0) {
-      triggerHaptic('warning');
-      alert("You're out of energy! Energy refills automatically every minute.");
-      return;
-    }
-
-    triggerHaptic('medium');
-    elBtnWatchRewarded.disabled = true;
-    elBtnWatchRewarded.querySelector('.btn-text').textContent = 'Loading Ad...';
-
-    const success = await window.adsgramService.showRewardedVideo();
-
-    if (success) {
-      const baseReward = 100;
-      const earnedCoins = Math.round(baseReward * state.multiplier);
-      const earnedXP = 25;
-
-      state.coins += earnedCoins;
-      state.xp += earnedXP;
-      state.adsWatched += 1;
-      state.energy = Math.max(0, state.energy - 1);
-      state.lastAdWatchTime = Date.now();
-
-      // Check level up
-      const nextLevelThreshold = state.level * 100;
-      if (state.xp >= nextLevelThreshold) {
-        state.level += 1;
-        state.multiplier += 0.2;
-        addDebugLog(`Player leveled up to Lv.${state.level}!`, 'reward');
-      }
-
-      // Progress quests
-      const q1 = state.quests.find(q => q.id === 'q1');
-      if (q1) q1.progress = Math.min(q1.target, q1.progress + 1);
-
-      const q4 = state.quests.find(q => q.id === 'q4');
-      if (q4) q4.progress = Math.min(q4.target, state.adsWatched);
-
-      triggerHaptic('success');
-      showRewardModal(earnedCoins, `Watched Adsgram Rewarded Ad (+${earnedXP} XP)`);
-    } else {
-      triggerHaptic('warning');
-    }
-
-    updateUI();
-  };
-
-  // --- INTERSTITIAL AD HANDLER ---
-  elBtnShowInterstitial.onclick = async () => {
-    triggerHaptic('light');
-    const success = await window.adsgramService.showInterstitial();
-    if (success) {
-      const reward = 30;
-      state.coins += reward;
-      triggerHaptic('success');
-      showRewardModal(reward, 'Watched Quick Ad Break!');
-      updateUI();
-    }
-  };
-
-  // --- DAILY BONUS HANDLER ---
-  elBtnDailyBonus.onclick = () => {
-    const today = new Date().toDateString();
-    if (state.lastDailyBonusClaim === today) {
-      triggerHaptic('warning');
-      alert('You have already claimed your daily check-in bonus today!');
-      return;
-    }
-
-    state.lastDailyBonusClaim = today;
-    state.coins += 250;
-    state.streak += 1;
-
-    const q3 = state.quests.find(q => q.id === 'q3');
-    if (q3) q3.progress = 1;
-
-    triggerHaptic('success');
-    showRewardModal(250, `Daily Bonus Claimed! Streak: ${state.streak} Days`);
-    updateUI();
   };
 
   // --- TAB NAVIGATION ---
@@ -386,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- INVITE & REFERRALS ---
+  // --- REFERRALS ---
   elBtnCopyRef.onclick = () => {
     navigator.clipboard.writeText(elRefLinkInput.value);
     triggerHaptic('light');
@@ -395,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   elBtnShareTelegram.onclick = () => {
     triggerHaptic('light');
-    const shareText = encodeURIComponent("🚀 Join Winwan Telegram Mini App! Watch short Adsgram ads and earn real rewards!");
+    const shareText = encodeURIComponent("🎮 Join Winwan Cyber Miner! Tap to mine coins, spin the lucky wheel and win rewards!");
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(elRefLinkInput.value)}&text=${shareText}`;
     if (tg?.openTelegramLink) {
       tg.openTelegramLink(shareUrl);
@@ -404,7 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- SETTINGS & CONFIGURATION MODAL ---
+  // --- SETTINGS MODAL ---
   elBtnSettings.onclick = () => {
     triggerHaptic('light');
     elSettingsModal.classList.remove('hidden');
@@ -424,29 +535,41 @@ document.addEventListener('DOMContentLoaded', () => {
     window.adsgramService.init(newBlockId);
 
     triggerHaptic('success');
-    alert('Adsgram settings saved and applied!');
+    alert('Settings saved!');
     elSettingsModal.classList.add('hidden');
   };
 
   elBtnResetData.onclick = () => {
-    if (confirm('Reset all coins, upgrades and quests back to defaults?')) {
-      localStorage.removeItem('winwan_app_state');
+    if (confirm('Reset all game progress?')) {
+      localStorage.removeItem('winwan_cyber_state');
       state = JSON.parse(JSON.stringify(defaultState));
       updateUI();
       triggerHaptic('warning');
-      alert('Demo data has been reset.');
+      alert('Game progress has been reset.');
       elSettingsModal.classList.add('hidden');
     }
   };
 
-  // --- PASSIVE ENERGY RECHARGE LOOP ---
+  // --- PASSIVE TIMERS ---
+  // Energy regeneration (10 energy / sec)
   setInterval(() => {
     if (state.energy < state.maxEnergy) {
-      state.energy += 1;
+      state.energy = Math.min(state.maxEnergy, state.energy + 5);
+      const energyPct = (state.energy / state.maxEnergy) * 100;
+      elEnergyBarFill.style.width = `${energyPct}%`;
+      elEnergyText.textContent = `${state.energy}/${state.maxEnergy}`;
+    }
+  }, 1000);
+
+  // Auto-Miner Bot (Every 3 sec)
+  setInterval(() => {
+    const autobot = state.upgrades.find(u => u.id === 'u_autobot');
+    if (autobot && autobot.level > 0) {
+      const passiveIncome = autobot.level * 15;
+      state.coins += passiveIncome;
       updateUI();
     }
-  }, 45000); // 1 energy every 45s
+  }, 3000);
 
-  // Initial render
   updateUI();
 });
