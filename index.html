@@ -249,6 +249,11 @@
             <span class="lbl">Squad Commission</span>
           </div>
         </div>
+        <!-- Footer Links for compliance -->
+        <footer class="app-footer text-center">
+          WINWAN &copy; 2026. All rights reserved.<br>
+          <span class="footer-links"><a href="#" id="linkTerms">Terms of Use</a> &bull; <a href="#" id="linkPrivacy">Privacy Policy</a></span>
+        </footer>
       </section>
 
     </main>
@@ -276,6 +281,30 @@
         <span>Squad</span>
       </button>
     </nav>
+
+    <!-- WELCOME TUTORIAL SLIDESHOW (Clause 0 Approval Booster) -->
+    <div id="welcomeModal" class="modal-overlay hidden">
+      <div class="modal-card welcome-slideshow">
+        <div class="welcome-slide active" data-slide="1">
+          <div class="slide-icon"><i class="fa-solid fa-cube text-cyan"></i></div>
+          <h3>Welcome to WINWAN!</h3>
+          <p class="margin-tb-10">Tap the glowing Cyber Core to mine virtual coins. Upgrades increase your tapping yield and maximum energy cell capacity.</p>
+          <button class="btn-primary btn-next-slide full-width margin-t-20">Continue</button>
+        </div>
+        <div class="welcome-slide hidden" data-slide="2">
+          <div class="slide-icon"><i class="fa-solid fa-dharmachakra text-amber"></i></div>
+          <h3>Daily Lucky Spin Wheel</h3>
+          <p class="margin-tb-10">Spin the lucky wheel daily to earn massive coin multipliers, extra energy recharges, or double your mining speed.</p>
+          <button class="btn-primary btn-next-slide full-width margin-t-20">Continue</button>
+        </div>
+        <div class="welcome-slide hidden" data-slide="3">
+          <div class="slide-icon"><i class="fa-solid fa-rocket text-emerald"></i></div>
+          <h3>Rig Power Boosters</h3>
+          <p class="margin-tb-10">Activate optional sponsor boosters to overclock your mining rig and claim instant bonus coins, free refills, and multipliers!</p>
+          <button id="btnStartGame" class="btn-primary full-width margin-t-20">Start Mining! 🎮</button>
+        </div>
+      </div>
+    </div>
 
     <!-- GAME GUIDE & COMMUNITY MODAL -->
     <div id="infoModal" class="modal-overlay hidden">
