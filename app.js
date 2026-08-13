@@ -99,7 +99,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const elStatFriendsCount = document.getElementById('statFriendsCount');
   const elStatReferralBonus = document.getElementById('statReferralBonus');
 
-  // Info Modal
+  // Ad Confirmation Modal
+  const elAdConfirmModal = document.getElementById('adConfirmModal');
+  const elBtnCloseAdConfirm = document.getElementById('btnCloseAdConfirm');
+  const elAdConfirmIcon = document.getElementById('adConfirmIcon');
+  const elAdConfirmTitle = document.getElementById('adConfirmTitle');
+  const elAdConfirmDesc = document.getElementById('adConfirmDesc');
+  const elBtnPlayAdAction = document.getElementById('btnPlayAdAction');
+  const elBtnCancelAdAction = document.getElementById('btnCancelAdAction');
+  let currentAdTriggerSource = null; // 'energy' | 'turbo' | 'spins'
+
+  // Info & Reward Modals
   const elInfoModal = document.getElementById('infoModal');
   const elBtnInfo = document.getElementById('btnInfo');
   const elBtnCloseInfo = document.getElementById('btnCloseInfo');
@@ -344,50 +354,79 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Extra Spins via Adsgram Video Ad
-  if (elBtnExtraSpinAd) {
-    elBtnExtraSpinAd.onclick = async () => {
-      triggerHaptic('medium');
-      if (window.adsgramService) {
-        const success = await window.adsgramService.showRewardedVideo();
-        if (success) {
-          state.spinsAvailable = (state.spinsAvailable || 0) + 2;
-          triggerHaptic('success');
-          showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
-          updateUI();
-        }
-      }
-    };
+  // --- AD BOOSTER TRIGGER FLOWS (Clause 4 Safe) ---
+  function showAdConfirmation(source) {
+    if (!elAdConfirmModal) return;
+    currentAdTriggerSource = source;
+    triggerHaptic('medium');
+
+    if (source === 'energy') {
+      if (elAdConfirmIcon) elAdConfirmIcon.innerHTML = '<i class="fa-solid fa-battery-charging text-cyan"></i>';
+      if (elAdConfirmTitle) elAdConfirmTitle.textContent = 'Instant Energy Refill';
+      if (elAdConfirmDesc) elAdConfirmDesc.textContent = 'Would you like to watch a short sponsored video to refill your energy cell completely + earn 250 bonus coins?';
+    } else if (source === 'turbo') {
+      if (elAdConfirmIcon) elAdConfirmIcon.innerHTML = '<i class="fa-solid fa-fire-flame-curved text-purple"></i>';
+      if (elAdConfirmTitle) elAdConfirmTitle.textContent = '2x Turbo Multiplier';
+      if (elAdConfirmDesc) elAdConfirmDesc.textContent = 'Would you like to watch a short sponsored video to double all tap mining earnings for the next 10 minutes?';
+    } else if (source === 'spins') {
+      if (elAdConfirmIcon) elAdConfirmIcon.innerHTML = '<i class="fa-solid fa-rotate text-amber"></i>';
+      if (elAdConfirmTitle) elAdConfirmTitle.textContent = 'Get +2 Extra Spins';
+      if (elAdConfirmDesc) elAdConfirmDesc.textContent = 'Would you like to watch a short sponsored video to add 2 extra Lucky Wheel spins to your account?';
+    }
+
+    elAdConfirmModal.classList.remove('hidden');
   }
 
-  // --- BOOSTERS (ADSGRAM REWARDED ADS) ---
+  // Bind Booster Cards to Open Confirmation
+  if (elBtnExtraSpinAd) {
+    elBtnExtraSpinAd.onclick = () => showAdConfirmation('spins');
+  }
+
   if (elBtnBoosterEnergy) {
-    elBtnBoosterEnergy.onclick = async () => {
-      triggerHaptic('medium');
-      if (window.adsgramService) {
-        const success = await window.adsgramService.showRewardedVideo();
-        if (success) {
-          state.energy = state.maxEnergy;
-          state.coins = (state.coins || 0) + 250;
-          triggerHaptic('success');
-          showRewardModal(250, '⚡ Instant Full Energy Refill + 250 Bonus Coins Claimed!');
-          updateUI();
-        }
-      }
-    };
+    elBtnBoosterEnergy.onclick = () => showAdConfirmation('energy');
   }
 
   if (elBtnBoosterTurbo) {
-    elBtnBoosterTurbo.onclick = async () => {
+    elBtnBoosterTurbo.onclick = () => showAdConfirmation('turbo');
+  }
+
+  // Handle Confirmation Actions
+  if (elBtnCloseAdConfirm) {
+    elBtnCloseAdConfirm.onclick = () => {
+      triggerHaptic('light');
+      elAdConfirmModal.classList.add('hidden');
+    };
+  }
+
+  if (elBtnCancelAdAction) {
+    elBtnCancelAdAction.onclick = () => {
+      triggerHaptic('light');
+      elAdConfirmModal.classList.add('hidden');
+    };
+  }
+
+  if (elBtnPlayAdAction) {
+    elBtnPlayAdAction.onclick = async () => {
       triggerHaptic('medium');
-      if (window.adsgramService) {
-        const success = await window.adsgramService.showRewardedVideo();
-        if (success) {
+      if (elAdConfirmModal) elAdConfirmModal.classList.add('hidden');
+
+      if (!window.adsgramService) return;
+
+      const success = await window.adsgramService.showRewardedVideo();
+      if (success) {
+        triggerHaptic('success');
+        if (currentAdTriggerSource === 'energy') {
+          state.energy = state.maxEnergy;
+          state.coins = (state.coins || 0) + 250;
+          showRewardModal(250, '⚡ Instant Full Energy Refill + 250 Bonus Coins Claimed!');
+        } else if (currentAdTriggerSource === 'turbo') {
           state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
-          triggerHaptic('success');
           showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
-          updateUI();
+        } else if (currentAdTriggerSource === 'spins') {
+          state.spinsAvailable = (state.spinsAvailable || 0) + 2;
+          showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
         }
+        updateUI();
       }
     };
   }
