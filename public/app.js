@@ -143,6 +143,20 @@ document.addEventListener('DOMContentLoaded', () => {
     window.adsgramService.init('42535');
   }
 
+  // --- ADSGRAM TASK AD INTEGRATION ---
+  const elTaskAd = document.querySelector('adsgram-task');
+  if (elTaskAd) {
+    elTaskAd.addEventListener('reward', () => {
+      state.coins = (state.coins || 0) + 2500;
+      triggerHaptic('success');
+      showRewardModal(2500, '🎉 Sponsor Task Completed! Mined coins awarded!');
+      updateUI();
+    });
+    elTaskAd.addEventListener('onError', (err) => {
+      console.warn('Adsgram Task Ad error:', err);
+    });
+  }
+
   // --- LEAGUE RANKS ---
   const leagues = [
     { name: 'Bronze', threshold: 0, icon: 'fa-shield-halved' },
