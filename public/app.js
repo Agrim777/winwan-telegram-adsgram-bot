@@ -595,6 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- TAB NAVIGATION ---
   const navItems = document.querySelectorAll('.bottom-nav .nav-item');
   const tabPanels = document.querySelectorAll('.tab-panel');
+  let lastInterstitialShowTime = 0;
 
   navItems.forEach(item => {
     item.addEventListener('click', () => {
@@ -607,6 +608,22 @@ document.addEventListener('DOMContentLoaded', () => {
       item.classList.add('active');
       const panel = document.getElementById(targetTab);
       if (panel) panel.classList.add('active');
+
+      // Compliant Interstitial trigger at natural transitions (Tab switching)
+      const now = Date.now();
+      if (now - lastInterstitialShowTime > 90 * 1000) {
+        if (Math.random() < 0.20) {
+          if (window.adsgramService) {
+            lastInterstitialShowTime = now;
+            window.adsgramService.showInterstitial().then(viewed => {
+              if (viewed) {
+                state.coins = (state.coins || 0) + 20;
+                updateUI();
+              }
+            });
+          }
+        }
+      }
     });
   });
 
