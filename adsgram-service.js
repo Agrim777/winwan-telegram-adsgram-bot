@@ -5,14 +5,11 @@
 
 class AdsgramService {
   constructor() {
-    let savedBlockId = localStorage.getItem('winwan_adsgram_block_id');
-    if (!savedBlockId || savedBlockId === '2924' || savedBlockId === '42427' || savedBlockId === '42428' || savedBlockId === '42502') {
-      savedBlockId = '42535';
-      localStorage.setItem('winwan_adsgram_block_id', '42535');
-    }
-    this.blockId = savedBlockId;
+    this.rewardBlockId = '42716';
+    this.interstitialBlockId = '42718';
     this.mode = localStorage.getItem('winwan_ads_mode') || 'adsgram_live'; // 'adsgram_live' | 'simulator'
-    this.adController = null;
+    this.rewardAdController = null;
+    this.interstitialAdController = null;
     this.isLoaded = false;
     this.onLogCallback = null;
   }
@@ -29,45 +26,32 @@ class AdsgramService {
   }
 
   /**
-   * Initializes the Adsgram SDK AdController
+   * Initializes the Adsgram SDK AdControllers
    */
-  init(blockId) {
-    if (blockId) {
-      this.blockId = blockId;
-      localStorage.setItem('winwan_adsgram_block_id', blockId);
-    }
+  init(rewardBlockId, interstitialBlockId) {
+    if (rewardBlockId) this.rewardBlockId = rewardBlockId;
+    if (interstitialBlockId) this.interstitialBlockId = interstitialBlockId;
 
-    this.log(`Initializing Adsgram SDK with Block ID: ${this.blockId}`, 'system');
+    this.log(`Initializing Adsgram SDK. Rewarded: ${this.rewardBlockId}, Interstitial: ${this.interstitialBlockId}`, 'system');
 
     if (typeof window.Adsgram !== 'undefined') {
       try {
-        // Initialize as per official Adsgram docs
-        this.adController = window.Adsgram.init({
-          blockId: this.blockId,
+        // Initialize Rewarded Ad Controller
+        this.rewardAdController = window.Adsgram.init({
+          blockId: this.rewardBlockId,
           debug: false
         });
 
-        // Event listeners as documented in Adsgram API reference
-        this.adController.addEventListener('onReward', () => {
-          this.log('Adsgram Event: [onReward] - User watched ad till the end!', 'reward');
-        });
-
-        this.adController.addEventListener('onStart', () => {
-          this.log('Adsgram Event: [onStart] - Ad playback started', 'ad-event');
-        });
-
-        this.adController.addEventListener('onSkip', () => {
-          this.log('Adsgram Event: [onSkip] - User skipped ad', 'error');
-        });
-
-        this.adController.addEventListener('onError', (err) => {
-          this.log(`Adsgram Event: [onError] - ${JSON.stringify(err)}`, 'error');
+        // Initialize Interstitial Ad Controller
+        this.interstitialAdController = window.Adsgram.init({
+          blockId: this.interstitialBlockId,
+          debug: false
         });
 
         this.isLoaded = true;
-        this.log('Adsgram AdController initialized successfully.', 'system');
+        this.log('Adsgram AdControllers initialized successfully.', 'system');
       } catch (err) {
-        this.log(`Failed to init Adsgram AdController: ${err.message}`, 'error');
+        this.log(`Failed to init Adsgram AdControllers: ${err.message}`, 'error');
       }
     } else {
       this.log('Adsgram SDK script not detected on window. Falling back to test simulator.', 'system');
@@ -79,14 +63,14 @@ class AdsgramService {
    * @returns {Promise<boolean>}
    */
   async showRewardedVideo() {
-    this.log(`Requesting Rewarded Video Ad with Block ID: ${this.blockId}...`, 'ad-event');
+    this.log(`Requesting Rewarded Video Ad with Block ID: ${this.rewardBlockId}...`, 'ad-event');
 
-    if (this.mode === 'simulator' || !window.Adsgram || !this.adController) {
+    if (this.mode === 'simulator' || !window.Adsgram || !this.rewardAdController) {
       return this._simulateAdExperience('Rewarded Video Ad');
     }
 
     return new Promise((resolve) => {
-      this.adController
+      this.rewardAdController
         .show()
         .then((result) => {
           // User watched ad till the end -> grant reward
@@ -110,17 +94,21 @@ class AdsgramService {
    * Shows an Interstitial Ad
    */
   async showInterstitial() {
-    this.log(`Requesting Interstitial Ad...`, 'ad-event');
-    if (this.mode === 'simulator' || !window.Adsgram || !this.adController) {
+    this.log(`Requesting Interstitial Ad with Block ID: ${this.interstitialBlockId}...`, 'ad-event');
+    if (this.mode === 'simulator' || !window.Adsgram || !this.interstitialAdController) {
       return this._simulateAdExperience('Interstitial Ad Break');
     }
 
     try {
-      await this.adController.show();
+      await this.interstitialAdController.show();
       this.log('Interstitial ad viewed.', 'ad-event');
       return true;
     } catch (err) {
       this.log(`Interstitial ad skipped or unavailable: ${err?.message || err}`, 'error');
+      // If in desktop browser without Telegram Mini App container, offer fallback
+      if (!window.Telegram?.WebApp?.initData) {
+        return this._simulateAdExperience('Interstitial Ad Break (Web Simulator)');
+      }
       return false;
     }
   }
