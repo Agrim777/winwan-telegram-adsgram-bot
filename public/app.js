@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const elTapPowerDisplay = document.getElementById('tapPowerDisplay');
   const elBtnBoosterEnergy = document.getElementById('btnBoosterEnergy');
   const elBtnBoosterTurbo = document.getElementById('btnBoosterTurbo');
+  const elBtnBoosterOverclock = document.getElementById('btnBoosterOverclock');
   const elSpinsAvailable = document.getElementById('spinsAvailable');
   const elBtnSpinWheel = document.getElementById('btnSpinWheel');
   const elBtnExtraSpinAd = document.getElementById('btnExtraSpinAd');
@@ -140,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- ADSGRAM SERVICE INIT ---
   if (window.adsgramService) {
-    window.adsgramService.init('42535');
+    window.adsgramService.init('42716', '42718');
   }
 
   // --- ADSGRAM TASK AD INTEGRATION ---
@@ -386,6 +387,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (elAdConfirmIcon) elAdConfirmIcon.innerHTML = '<i class="fa-solid fa-rotate text-amber"></i>';
       if (elAdConfirmTitle) elAdConfirmTitle.textContent = 'Get +2 Extra Spins';
       if (elAdConfirmDesc) elAdConfirmDesc.textContent = 'Would you like to watch a short sponsored video to add 2 extra Lucky Wheel spins to your account?';
+    } else if (source === 'overclock') {
+      if (elAdConfirmIcon) elAdConfirmIcon.innerHTML = '<i class="fa-solid fa-bolt text-emerald"></i>';
+      if (elAdConfirmTitle) elAdConfirmTitle.textContent = 'Rig Overclock Boost';
+      if (elAdConfirmDesc) elAdConfirmDesc.textContent = 'Would you like to watch a short sponsored ad break to overclock your mining rig and claim +100 instant coins?';
     }
 
     elAdConfirmModal.classList.remove('hidden');
@@ -402,6 +407,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (elBtnBoosterTurbo) {
     elBtnBoosterTurbo.onclick = () => showAdConfirmation('turbo');
+  }
+
+  if (elBtnBoosterOverclock) {
+    elBtnBoosterOverclock.onclick = () => showAdConfirmation('overclock');
   }
 
   // Handle Confirmation Actions
@@ -426,7 +435,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!window.adsgramService) return;
 
-      const success = await window.adsgramService.showRewardedVideo();
+      let success = false;
+      if (currentAdTriggerSource === 'overclock') {
+        success = await window.adsgramService.showInterstitial();
+      } else {
+        success = await window.adsgramService.showRewardedVideo();
+      }
+
       if (success) {
         triggerHaptic('success');
         if (currentAdTriggerSource === 'energy') {
@@ -439,6 +454,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentAdTriggerSource === 'spins') {
           state.spinsAvailable = (state.spinsAvailable || 0) + 2;
           showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
+        } else if (currentAdTriggerSource === 'overclock') {
+          state.coins = (state.coins || 0) + 100;
+          showRewardModal(100, '⚡ Rig Overclocked! Mined +100 coins successfully.');
         }
         updateUI();
       }
