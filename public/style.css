@@ -1099,3 +1099,18 @@ body {
 .margin-t-10 {
   margin-top: 10px;
 }
+
+/* Sponsor Tasks styling */
+.sponsor-tasks-wrapper {
+  margin-top: 15px;
+}
+.sponsor-task-card {
+  background: var(--glass-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  margin-top: 10px;
+}
+.margin-t-20 {
+  margin-top: 20px;
+}
