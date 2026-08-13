@@ -218,6 +218,26 @@ document.addEventListener('DOMContentLoaded', () => {
     saveState();
   }
 
+  // --- SYNTHESIZED MINING AUDIO (Sci-Fi Laser Chirp) ---
+  function playMiningChirp() {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.07);
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.07);
+    } catch (e) {}
+  }
+
   // --- TAP MINING ENGINE ---
   function handleTap(clientX, clientY) {
     if (state.energy <= 0) {
@@ -234,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.totalTaps = (state.totalTaps || 0) + 1;
 
     triggerHaptic('light');
+    playMiningChirp();
 
     // Floating particle
     if (clientX && clientY) {
@@ -660,6 +681,62 @@ document.addEventListener('DOMContentLoaded', () => {
       updateUI();
     }
   }, 3000);
+
+  // --- WELCOME SLIDESHOW ENGINE ---
+  const elWelcomeModal = document.getElementById('welcomeModal');
+  const btnNextSlides = document.querySelectorAll('.btn-next-slide');
+  const btnStartGame = document.getElementById('btnStartGame');
+
+  if (elWelcomeModal) {
+    const welcomed = localStorage.getItem('winwan_welcomed');
+    if (!welcomed) {
+      elWelcomeModal.classList.remove('hidden');
+    }
+  }
+
+  btnNextSlides.forEach(btn => {
+    btn.onclick = () => {
+      triggerHaptic('light');
+      const currentSlide = btn.closest('.welcome-slide');
+      const nextSlideNum = parseInt(currentSlide.getAttribute('data-slide')) + 1;
+      const nextSlide = elWelcomeModal.querySelector(`.welcome-slide[data-slide="${nextSlideNum}"]`);
+      
+      if (currentSlide && nextSlide) {
+        currentSlide.classList.add('hidden');
+        currentSlide.classList.remove('active');
+        nextSlide.classList.remove('hidden');
+        nextSlide.classList.add('active');
+      }
+    };
+  });
+
+  if (btnStartGame) {
+    btnStartGame.onclick = () => {
+      triggerHaptic('success');
+      localStorage.setItem('winwan_welcomed', 'true');
+      if (elWelcomeModal) elWelcomeModal.classList.add('hidden');
+    };
+  }
+
+  // --- COMPLIANCE LINKS ---
+  const linkTerms = document.getElementById('linkTerms');
+  const linkPrivacy = document.getElementById('linkPrivacy');
+
+  if (linkTerms) {
+    linkTerms.onclick = (e) => {
+      e.preventDefault();
+      triggerHaptic('light');
+      alert("WINWAN Terms of Service:\n\n1. Play fair: Scripting or automatic clickers are prohibited.\n2. Virtual Coins: Coins earned have no real-world monetary value unless converted as part of official giveaways.\n3. Community Rules: Maintain clean behavior in our Telegram channels.");
+    };
+  }
+
+  if (linkPrivacy) {
+    linkPrivacy.onclick = (e) => {
+      e.preventDefault();
+      triggerHaptic('light');
+      alert("WINWAN Privacy Policy:\n\n1. We respect your privacy. No personal identification data is collected.\n2. Telegram user ID is used solely to save your local game progression and referral squad commission.\n3. Third-party ad delivery is handled securely via official Adsgram SDK.");
+    };
+  }
 
   // Initial render
   updateUI();
