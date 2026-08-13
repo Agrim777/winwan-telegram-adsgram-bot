@@ -1114,3 +1114,48 @@ body {
 .margin-t-20 {
   margin-top: 20px;
 }
+
+/* Welcome Slideshow Modal styling */
+.welcome-slideshow {
+  text-align: center;
+  max-width: 360px;
+}
+.welcome-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.30s ease;
+}
+.slide-icon {
+  font-size: 58px;
+  margin: 15px 0;
+  text-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+}
+.welcome-slide h3 {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.welcome-slide p {
+  font-size: 13px;
+  color: var(--hint-color);
+  line-height: 1.4;
+}
+
+/* Compliance Footer styling */
+.app-footer {
+  margin-top: 25px;
+  font-size: 11px;
+  color: var(--hint-color);
+  padding: 10px 0;
+  border-top: 1px solid var(--glass-border);
+}
+.footer-links a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  font-weight: 600;
+}
+.footer-links a:hover {
+  text-decoration: underline;
+}
