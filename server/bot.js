@@ -43,9 +43,9 @@ Mine cyber coins, spin the lucky wheel daily, and upgrade your rig to become the
 👇 <i>Tap below to launch the game:</i>`;
 
     const keyboard = new InlineKeyboard()
-      .webApp('🎮 Play WINWAN Game', miniappUrl)
+      .url('🎮 Play WINWAN Game', 'https://t.me/Winwanbot/Winwan')
       .row()
-      .webApp('🎰 Daily Lucky Wheel', miniappUrl);
+      .url('🎰 Daily Lucky Wheel', 'https://t.me/Winwanbot/Winwan');
 
     await ctx.reply(welcomeHtml, {
       parse_mode: 'HTML',
@@ -54,7 +54,7 @@ Mine cyber coins, spin the lucky wheel daily, and upgrade your rig to become the
   } catch (err) {
     console.error('Error handling /start command:', err);
     await ctx.reply('🎮 Welcome to WINWAN! Tap below to play.', {
-      reply_markup: new InlineKeyboard().webApp('🎮 Play Game', miniappUrl)
+      reply_markup: new InlineKeyboard().url('🎮 Play Game', 'https://t.me/Winwanbot/Winwan')
     });
   }
 });
@@ -63,7 +63,7 @@ Mine cyber coins, spin the lucky wheel daily, and upgrade your rig to become the
 bot.command('spin', async (ctx) => {
   try {
     const keyboard = new InlineKeyboard()
-      .webApp('🎰 Spin the Lucky Wheel', miniappUrl);
+      .url('🎰 Spin the Lucky Wheel', 'https://t.me/Winwanbot/Winwan');
 
     await ctx.reply(
       `🎰 <b>Daily Lucky Wheel is Ready!</b>\n\nSpin the wheel to win instant coin jackpots and 2x Turbo mining boosters:`,
@@ -91,7 +91,7 @@ bot.command('help', async (ctx) => {
 Tap the Cyber Core in the game to mine coins. Upgrade your energy cell and multitap to increase your earnings!`;
 
     const keyboard = new InlineKeyboard()
-      .webApp('🎮 Launch Game', miniappUrl);
+      .url('🎮 Launch Game', 'https://t.me/Winwanbot/Winwan');
 
     await ctx.reply(helpHtml, { parse_mode: 'HTML', reply_markup: keyboard });
   } catch (err) {
@@ -114,7 +114,7 @@ bot.command('setadmin', async (ctx) => {
 // Any other message fallback
 bot.on('message:text', async (ctx) => {
   const keyboard = new InlineKeyboard()
-    .webApp('🎮 Play WINWAN Game', miniappUrl);
+    .url('🎮 Play WINWAN Game', 'https://t.me/Winwanbot/Winwan');
 
   await ctx.reply(`👋 Hi! Tap below to launch WINWAN Cyber Miner:`, {
     reply_markup: keyboard
