@@ -52,7 +52,10 @@
         
         <!-- Score & Balance Display -->
         <div class="score-display">
-          <div class="balance-sub">Mined Balance</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div class="balance-sub">Mined Balance</div>
+            <button id="btnOpenWithdraw" class="btn-primary" style="padding: 4px 10px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border-radius: var(--radius-sm); border: none; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); margin: 0;"><i class="fa-solid fa-money-bill-transfer"></i> CASH OUT</button>
+          </div>
           <div class="balance-main">
             <div class="coin-icon-wrapper">
               <i class="fa-solid fa-coins gold-glow"></i>
@@ -291,6 +294,53 @@
           <h3>Rig Power Boosters</h3>
           <p class="margin-tb-10">Activate optional sponsor boosters to overclock your mining rig and claim instant bonus coins, free refills, and multipliers!</p>
           <button id="btnStartGame" class="btn-primary full-width margin-t-20">Start Mining! 🎮</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WITHDRAWAL MODAL -->
+    <div id="withdrawModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-money-bill-transfer text-emerald"></i> Request Cash Out</h3>
+          <button id="btnCloseWithdraw" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 15px; text-align: center;">
+            <div style="font-size: 11px; color: var(--hint-color); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Exchange Rate</div>
+            <div style="font-family: var(--font-heading); font-size: 18px; color: #10b981; font-weight: 800;">10,000 Coins = $1.00 USD</div>
+          </div>
+          
+          <div id="withdrawIneligibleBlock" class="text-center" style="padding: 15px 0;">
+            <div style="font-size: 32px; margin-bottom: 8px;">🔒</div>
+            <p style="font-size: 13px; color: var(--hint-color); line-height: 1.4; margin: 0 0 10px 0;">You need a minimum balance of <strong>10,000 coins</strong> to request a withdrawal.<br>Watch sponsors or spin the wheel to earn more!</p>
+            <div style="font-size: 12px; color: var(--accent-cyan); font-weight: 700; margin-top: 10px;" id="withdrawMissingCoinsText">Missing: 10,000 coins</div>
+          </div>
+          
+          <div id="withdrawEligibleBlock" class="hidden">
+            <div class="margin-b-20" style="background: rgba(255,255,255,0.05); border-radius: var(--radius-sm); padding: 12px; border: 1px solid var(--glass-border); text-align: center;">
+              <div style="font-size: 12px; color: var(--hint-color); margin-bottom: 4px;">Available Cash Out Amount:</div>
+              <div style="font-size: 20px; font-weight: 800; color: var(--gold-primary); font-family: var(--font-heading);" id="withdrawEligibleAmountText">$1.00 USD</div>
+            </div>
+            
+            <div style="margin-bottom: 12px; text-align: left;">
+              <label style="font-size: 11px; color: var(--hint-color); font-weight: 700; display: block; margin-bottom: 4px;">Select Payment Method</label>
+              <select id="withdrawMethod" style="width: 100%; background: #0b1528; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 8px; color: #fff; font-size: 13px; outline: none;">
+                <option value="UPI / Paytm">UPI / Paytm (India)</option>
+                <option value="TON Wallet">TON Wallet Address (Crypto)</option>
+                <option value="PayPal">PayPal Email (International)</option>
+              </select>
+            </div>
+            
+            <div style="margin-bottom: 16px; text-align: left;">
+              <label style="font-size: 11px; color: var(--hint-color); font-weight: 700; display: block; margin-bottom: 4px;">Payment Address / Details</label>
+              <input type="text" id="withdrawDetails" placeholder="Enter UPI ID, Wallet Address or PayPal Email" style="width: 100%; background: #0b1528; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 8px; color: #fff; font-size: 13px; outline: none; box-sizing: border-box;">
+            </div>
+            
+            <button id="btnSubmitWithdraw" class="btn-primary full-width" style="background: linear-gradient(135deg, #10b981, #059669); border-color: #059669; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);">
+              <i class="fa-solid fa-paper-plane"></i> Submit Payout Request
+            </button>
+          </div>
         </div>
       </div>
     </div>
