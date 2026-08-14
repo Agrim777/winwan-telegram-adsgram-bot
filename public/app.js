@@ -408,10 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (elAdConfirmIcon) elAdConfirmIcon.innerHTML = '<i class="fa-solid fa-rotate text-amber"></i>';
       if (elAdConfirmTitle) elAdConfirmTitle.textContent = 'Get +2 Extra Spins';
       if (elAdConfirmDesc) elAdConfirmDesc.textContent = 'Would you like to watch a short sponsored video to add 2 extra Lucky Wheel spins to your account?';
-    } else if (source === 'overclock') {
-      if (elAdConfirmIcon) elAdConfirmIcon.innerHTML = '<i class="fa-solid fa-bolt text-emerald"></i>';
-      if (elAdConfirmTitle) elAdConfirmTitle.textContent = 'Rig Overclock Boost';
-      if (elAdConfirmDesc) elAdConfirmDesc.textContent = 'Would you like to watch a short sponsored ad break to overclock your mining rig and claim +100 instant coins?';
     }
 
     elAdConfirmModal.classList.remove('hidden');
@@ -428,10 +424,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (elBtnBoosterTurbo) {
     elBtnBoosterTurbo.onclick = () => showAdConfirmation('turbo');
-  }
-
-  if (elBtnBoosterOverclock) {
-    elBtnBoosterOverclock.onclick = () => showAdConfirmation('overclock');
   }
 
   // Handle Confirmation Actions
@@ -456,12 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!window.adsgramService) return;
 
-      let success = false;
-      if (currentAdTriggerSource === 'overclock') {
-        success = await window.adsgramService.showInterstitial();
-      } else {
-        success = await window.adsgramService.showRewardedVideo();
-      }
+      const success = await window.adsgramService.showRewardedVideo();
 
       if (success) {
         triggerHaptic('success');
@@ -475,9 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentAdTriggerSource === 'spins') {
           state.spinsAvailable = (state.spinsAvailable || 0) + 2;
           showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
-        } else if (currentAdTriggerSource === 'overclock') {
-          state.coins = (state.coins || 0) + 100;
-          showRewardModal(100, '⚡ Rig Overclocked! Mined +100 coins successfully.');
         }
         updateUI();
       }
@@ -595,7 +579,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- TAB NAVIGATION ---
   const navItems = document.querySelectorAll('.bottom-nav .nav-item');
   const tabPanels = document.querySelectorAll('.tab-panel');
-  let lastInterstitialShowTime = 0;
 
   navItems.forEach(item => {
     item.addEventListener('click', () => {
@@ -608,22 +591,6 @@ document.addEventListener('DOMContentLoaded', () => {
       item.classList.add('active');
       const panel = document.getElementById(targetTab);
       if (panel) panel.classList.add('active');
-
-      // Compliant Interstitial trigger at natural transitions (Tab switching)
-      const now = Date.now();
-      if (now - lastInterstitialShowTime > 90 * 1000) {
-        if (Math.random() < 0.20) {
-          if (window.adsgramService) {
-            lastInterstitialShowTime = now;
-            window.adsgramService.showInterstitial().then(viewed => {
-              if (viewed) {
-                state.coins = (state.coins || 0) + 20;
-                updateUI();
-              }
-            });
-          }
-        }
-      }
     });
   });
 
