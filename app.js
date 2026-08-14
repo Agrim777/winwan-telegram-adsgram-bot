@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- GAME STATE ---
   const defaultState = {
     coins: 500,
+    adCoins: 0,
     tapPower: 1,
     energy: 1000,
     maxEnergy: 1000,
@@ -152,8 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         window.open(ADSTERRA_DIRECT_LINK, '_blank');
       }
-      state.coins = (state.coins || 0) + 2500;
-      showRewardModal(2500, '🎉 Sponsor Task Completed! Mined coins awarded!');
+      state.coins = (state.coins || 0) + 1;
+      state.adCoins = (state.adCoins || 0) + 1;
+      showRewardModal(1, '🎉 Sponsor Task Completed! 1 Ad Coin awarded!');
       updateUI();
     };
   }
@@ -455,16 +457,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Grant Reward instantly
       triggerHaptic('success');
+      state.adCoins = (state.adCoins || 0) + 1;
+      state.coins = (state.coins || 0) + 1;
+
       if (currentAdTriggerSource === 'energy') {
         state.energy = state.maxEnergy;
-        state.coins = (state.coins || 0) + 250;
-        showRewardModal(250, '⚡ Instant Full Energy Refill + 250 Bonus Coins Claimed!');
+        showRewardModal(1, '⚡ Instant Full Energy Refill + 1 Ad Coin Mined!');
       } else if (currentAdTriggerSource === 'turbo') {
         state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
-        showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
+        showRewardModal(1, '🔥 2X Turbo Mining Boost Activated + 1 Ad Coin Mined!');
       } else if (currentAdTriggerSource === 'spins') {
-        state.spinsAvailable = (state.spinsAvailable || 0) + 2;
-        showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
+        state.spinsAvailable = (state.spinsAvailable || 0) + 1;
+        showRewardModal(1, 'Received +1 Extra Lucky Wheel Spin + 1 Ad Coin!');
       }
       updateUI();
     };
@@ -721,6 +725,99 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       triggerHaptic('light');
       alert("WINWAN Privacy Policy:\n\n1. We respect your privacy. No personal identification data is collected.\n2. Telegram user ID is used solely to save your local game progression and referral squad commission.\n3. Third-party ad delivery is handled securely via official Adsgram SDK.");
+    };
+  }
+
+  // --- WITHDRAWAL SYSTEM ---
+  const elBtnOpenWithdraw = document.getElementById('btnOpenWithdraw');
+  const elWithdrawModal = document.getElementById('withdrawModal');
+  const elBtnCloseWithdraw = document.getElementById('btnCloseWithdraw');
+  const elWithdrawIneligibleBlock = document.getElementById('withdrawIneligibleBlock');
+  const elWithdrawEligibleBlock = document.getElementById('withdrawEligibleBlock');
+  const elWithdrawMissingCoinsText = document.getElementById('withdrawMissingCoinsText');
+  const elWithdrawEligibleAmountText = document.getElementById('withdrawEligibleAmountText');
+  const elWithdrawMethod = document.getElementById('withdrawMethod');
+  const elWithdrawDetails = document.getElementById('withdrawDetails');
+  const elBtnSubmitWithdraw = document.getElementById('btnSubmitWithdraw');
+
+  if (elBtnOpenWithdraw && elWithdrawModal) {
+    elBtnOpenWithdraw.onclick = () => {
+      triggerHaptic('medium');
+      elWithdrawModal.classList.remove('hidden');
+      
+      const coins = state.adCoins || 0;
+      if (coins < 10000) {
+        if (elWithdrawIneligibleBlock) elWithdrawIneligibleBlock.classList.remove('hidden');
+        if (elWithdrawEligibleBlock) elWithdrawEligibleBlock.classList.add('hidden');
+        if (elWithdrawMissingCoinsText) {
+          elWithdrawMissingCoinsText.textContent = `Missing: ${(10000 - coins).toLocaleString()} Ad Coins`;
+        }
+      } else {
+        if (elWithdrawIneligibleBlock) elWithdrawIneligibleBlock.classList.add('hidden');
+        if (elWithdrawEligibleBlock) elWithdrawEligibleBlock.classList.remove('hidden');
+        if (elWithdrawEligibleAmountText) {
+          const dollarValue = (coins / 10000).toFixed(2);
+          elWithdrawEligibleAmountText.textContent = `$${dollarValue} USD (${coins.toLocaleString()} Ad Coins)`;
+        }
+      }
+    };
+  }
+
+  if (elBtnCloseWithdraw && elWithdrawModal) {
+    elBtnCloseWithdraw.onclick = () => {
+      triggerHaptic('light');
+      elWithdrawModal.classList.add('hidden');
+    };
+  }
+
+  if (elBtnSubmitWithdraw) {
+    elBtnSubmitWithdraw.onclick = async () => {
+      triggerHaptic('medium');
+      const details = elWithdrawDetails ? elWithdrawDetails.value.trim() : '';
+      if (!details) {
+        alert('Please enter your payment address or details!');
+        return;
+      }
+
+      const coinsToWithdraw = state.adCoins || 0;
+      const method = elWithdrawMethod ? elWithdrawMethod.value : 'UPI';
+
+      try {
+        const response = await fetch('/api/withdraw', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId: userId,
+            username: user?.username || user?.first_name || 'Anonymous',
+            paymentMethod: method,
+            paymentDetails: details,
+            amountCoins: coinsToWithdraw
+          })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          triggerHaptic('success');
+          state.adCoins = 0;
+          if (elWithdrawDetails) elWithdrawDetails.value = '';
+          if (elWithdrawModal) elWithdrawModal.classList.add('hidden');
+          showRewardModal(0, `🚀 Cash out request for ${coinsToWithdraw.toLocaleString()} Ad Coins submitted! Admin will notify you shortly.`);
+          updateUI();
+        } else {
+          alert('Failed to submit cash out request. Try again.');
+        }
+      } catch (err) {
+        console.error('Error submitting withdrawal:', err);
+        // Fallback for standalone static pages if backend is offline:
+        triggerHaptic('success');
+        state.adCoins = 0;
+        if (elWithdrawDetails) elWithdrawDetails.value = '';
+        if (elWithdrawModal) elWithdrawModal.classList.add('hidden');
+        showRewardModal(0, `🚀 [Demo Mode] Cash out request for ${coinsToWithdraw.toLocaleString()} Ad Coins simulated!`);
+        updateUI();
+      }
     };
   }
 
