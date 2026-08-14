@@ -71,6 +71,81 @@ Please process the payout and verify.`;
   }
 });
 
+// Referral Registration Endpoint
+app.post('/api/referral', (req, res) => {
+  try {
+    const { userId, referrerId } = req.body;
+    if (!userId || !referrerId || userId == referrerId) {
+      return res.status(400).json({ success: false, error: 'Invalid parameters' });
+    }
+
+    const referralsFile = path.join(__dirname, 'referrals.json');
+    let referrals = [];
+    if (fs.existsSync(referralsFile)) {
+      try {
+        referrals = JSON.parse(fs.readFileSync(referralsFile, 'utf8'));
+      } catch (e) {
+        referrals = [];
+      }
+    }
+
+    // Check if the referred user has already joined
+    const exists = referrals.find(r => r.userId == userId);
+    if (!exists) {
+      referrals.push({
+        userId: userId,
+        referrerId: referrerId,
+        claimed: false,
+        timestamp: Date.now()
+      });
+      fs.writeFileSync(referralsFile, JSON.stringify(referrals, null, 2));
+      console.log(`[Referral Verified] User ${userId} joined via Inviter ${referrerId}`);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error handling /api/referral:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+// User Status Endpoint (Check for unclaimed invite boosts)
+app.get('/api/user-status', (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'Missing userId parameter' });
+    }
+
+    const referralsFile = path.join(__dirname, 'referrals.json');
+    let referrals = [];
+    if (fs.existsSync(referralsFile)) {
+      try {
+        referrals = JSON.parse(fs.readFileSync(referralsFile, 'utf8'));
+      } catch (e) {
+        referrals = [];
+      }
+    }
+
+    // Find verified, unclaimed referrals from this inviter
+    const unclaimed = referrals.filter(r => r.referrerId == userId && r.claimed === false);
+    let pendingBoostMs = 0;
+    if (unclaimed.length > 0) {
+      pendingBoostMs = unclaimed.length * 60 * 60 * 1000; // 1 hour boost per verified join!
+      unclaimed.forEach(r => {
+        r.claimed = true;
+      });
+      fs.writeFileSync(referralsFile, JSON.stringify(referrals, null, 2));
+      console.log(`[Referral Boost Claimed] Inviter ${userId} received ${unclaimed.length}-hour turbo boost.`);
+    }
+
+    res.json({ success: true, pendingBoostMs: pendingBoostMs });
+  } catch (err) {
+    console.error('Error handling /api/user-status:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', bot: 'Winwanbot', service: 'Telegram Mini App' });
