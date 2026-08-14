@@ -181,6 +181,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateUI() {
     if (elCoinBalance) elCoinBalance.textContent = Number(state.coins || 0).toLocaleString();
 
+    const elAdCoinBalance = document.getElementById('adCoinBalance');
+    if (elAdCoinBalance) {
+      elAdCoinBalance.textContent = `${Number(state.adCoins || 0).toLocaleString()} Ad Coins`;
+    }
+
     // League progress
     const curLeague = getLeague(state.coins || 0);
     const nextLeague = leagues[curLeague.index + 1] || null;
@@ -294,14 +299,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // Touch support (multi-finger tapping)
     elTapCore.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      for (let i = 0; i < e.touches.length; i++) {
-        handleTap(e.touches[i].clientX, e.touches[i].clientY);
+      triggerHaptic('success');
+      if (tg?.openLink) {
+        tg.openLink(ADSTERRA_LINK_1);
+      } else {
+        window.open(ADSTERRA_LINK_1, '_blank');
       }
+      state.coins = (state.coins || 0) + 1;
+      state.adCoins = (state.adCoins || 0) + 1;
+      showRewardModal(1, '🎉 Cyber Core mined! 1 Ad Coin awarded.');
+      updateUI();
     }, { passive: false });
 
     // Desktop click support
     elTapCore.addEventListener('click', (e) => {
-      handleTap(e.clientX, e.clientY);
+      triggerHaptic('success');
+      if (tg?.openLink) {
+        tg.openLink(ADSTERRA_LINK_1);
+      } else {
+        window.open(ADSTERRA_LINK_1, '_blank');
+      }
+      state.coins = (state.coins || 0) + 1;
+      state.adCoins = (state.adCoins || 0) + 1;
+      showRewardModal(1, '🎉 Cyber Core mined! 1 Ad Coin awarded.');
+      updateUI();
     });
   }
 
