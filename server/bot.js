@@ -4,6 +4,8 @@
  */
 
 const { Bot, InlineKeyboard } = require('grammy');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const token = process.env.BOT_TOKEN || '8787752776:AAFgCorUmaixzJn4Pt4RkQANkqXTsuKK8KI';
@@ -94,6 +96,18 @@ Tap the Cyber Core in the game to mine coins. Upgrade your energy cell and multi
     await ctx.reply(helpHtml, { parse_mode: 'HTML', reply_markup: keyboard });
   } catch (err) {
     console.error('Error handling /help command:', err);
+  }
+});
+
+// /setadmin Command
+bot.command('setadmin', async (ctx) => {
+  try {
+    const adminFile = path.join(__dirname, 'admin.json');
+    fs.writeFileSync(adminFile, JSON.stringify({ chatId: ctx.from.id }, null, 2));
+    await ctx.reply(`✅ <b>Admin Chat ID Registered Successfully!</b>\n\nAll future user withdrawal and payout requests will be forwarded directly to this chat window.`, { parse_mode: 'HTML' });
+  } catch (err) {
+    console.error('Error in /setadmin command:', err);
+    await ctx.reply('❌ Failed to register Admin Chat ID.');
   }
 });
 
