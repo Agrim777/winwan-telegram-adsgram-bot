@@ -139,23 +139,23 @@ document.addEventListener('DOMContentLoaded', () => {
     elRefLinkInput.value = `https://t.me/Winwanbot/Winwan?startapp=ref_${userId}`;
   }
 
-  // --- ADSGRAM SERVICE INIT ---
-  if (window.adsgramService) {
-    window.adsgramService.init('42716', '42718');
-  }
+  // --- ADSTERRA MONETIZATION CONFIG ---
+  const ADSTERRA_DIRECT_LINK = 'https://www.effectivecpmnetwork.com/gcadebhw?key=b7506b60b291b057b56d7cb3885dd8d4';
 
-  // --- ADSGRAM TASK AD INTEGRATION ---
-  const elTaskAd = document.querySelector('adsgram-task');
-  if (elTaskAd) {
-    elTaskAd.addEventListener('reward', () => {
-      state.coins = (state.coins || 0) + 2500;
+  // --- ADSTERRA SPONSOR TASK INTEGRATION ---
+  const elBtnSponsorTaskAdsterra = document.getElementById('btnSponsorTaskAdsterra');
+  if (elBtnSponsorTaskAdsterra) {
+    elBtnSponsorTaskAdsterra.onclick = () => {
       triggerHaptic('success');
+      if (tg?.openLink) {
+        tg.openLink(ADSTERRA_DIRECT_LINK);
+      } else {
+        window.open(ADSTERRA_DIRECT_LINK, '_blank');
+      }
+      state.coins = (state.coins || 0) + 2500;
       showRewardModal(2500, '🎉 Sponsor Task Completed! Mined coins awarded!');
       updateUI();
-    });
-    elTaskAd.addEventListener('onError', (err) => {
-      console.warn('Adsgram Task Ad error:', err);
-    });
+    };
   }
 
   // --- LEAGUE RANKS ---
@@ -442,29 +442,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (elBtnPlayAdAction) {
-    elBtnPlayAdAction.onclick = async () => {
+    elBtnPlayAdAction.onclick = () => {
       triggerHaptic('medium');
       if (elAdConfirmModal) elAdConfirmModal.classList.add('hidden');
 
-      if (!window.adsgramService) return;
-
-      const success = await window.adsgramService.showRewardedVideo();
-
-      if (success) {
-        triggerHaptic('success');
-        if (currentAdTriggerSource === 'energy') {
-          state.energy = state.maxEnergy;
-          state.coins = (state.coins || 0) + 250;
-          showRewardModal(250, '⚡ Instant Full Energy Refill + 250 Bonus Coins Claimed!');
-        } else if (currentAdTriggerSource === 'turbo') {
-          state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
-          showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
-        } else if (currentAdTriggerSource === 'spins') {
-          state.spinsAvailable = (state.spinsAvailable || 0) + 2;
-          showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
-        }
-        updateUI();
+      // Open Adsterra direct link
+      if (tg?.openLink) {
+        tg.openLink(ADSTERRA_DIRECT_LINK);
+      } else {
+        window.open(ADSTERRA_DIRECT_LINK, '_blank');
       }
+
+      // Grant Reward instantly
+      triggerHaptic('success');
+      if (currentAdTriggerSource === 'energy') {
+        state.energy = state.maxEnergy;
+        state.coins = (state.coins || 0) + 250;
+        showRewardModal(250, '⚡ Instant Full Energy Refill + 250 Bonus Coins Claimed!');
+      } else if (currentAdTriggerSource === 'turbo') {
+        state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
+        showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
+      } else if (currentAdTriggerSource === 'spins') {
+        state.spinsAvailable = (state.spinsAvailable || 0) + 2;
+        showRewardModal(0, 'Received +2 Extra Lucky Wheel Spins from sponsor!');
+      }
+      updateUI();
     };
   }
 
