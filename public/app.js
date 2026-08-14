@@ -140,6 +140,40 @@ document.addEventListener('DOMContentLoaded', () => {
     elRefLinkInput.value = `https://t.me/Winwanbot/Winwan?startapp=ref_${userId}`;
   }
 
+  // --- REFERRAL VERIFICATION & BOOST SYNC ---
+  const startParam = tg?.initDataUnsafe?.start_param;
+  const referralRegistered = localStorage.getItem('winwan_ref_registered');
+  if (startParam && startParam.startsWith('ref_') && !referralRegistered) {
+    const referrerId = startParam.replace('ref_', '');
+    fetch('/api/referral', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userId, referrerId: referrerId })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        localStorage.setItem('winwan_ref_registered', 'true');
+      }
+    })
+    .catch(err => console.error('Error reporting referral:', err));
+  }
+
+  // Check boost status for inviter
+  fetch(`/api/user-status?userId=${userId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.pendingBoostMs > 0) {
+        state.turboActiveUntil = Math.max(Date.now(), state.turboActiveUntil || 0) + data.pendingBoostMs;
+        saveState();
+        updateUI();
+        setTimeout(() => {
+          showRewardModal(0, `🎉 squad Invite Verified! A friend has joined. 1-Hour 2X Mining Boost activated!`);
+        }, 1500);
+      }
+    })
+    .catch(err => console.error('Error checking user status:', err));
+
   // --- ADSTERRA MONETIZATION CONFIG ---
   const ADSTERRA_LINK_1 = 'https://www.effectivecpmnetwork.com/gcadebhw?key=b7506b60b291b057b56d7cb3885dd8d4';
   const ADSTERRA_LINK_2 = 'https://www.effectivecpmnetwork.com/bpgidnw8c?key=3a61c57fc5485434e2df4de61e2e7454';
@@ -622,20 +656,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- REFERRALS ---
   if (elBtnCopyRef && elRefLinkInput) {
     elBtnCopyRef.onclick = () => {
       navigator.clipboard.writeText(elRefLinkInput.value);
-      triggerHaptic('light');
-      alert('Invite link copied to clipboard!');
+      triggerHaptic('success');
+      state.coins = (state.coins || 0) + 100;
+      showRewardModal(100, '✨ Invite link copied to clipboard! 100 Coins added to your rig balance.');
+      updateUI();
     };
   }
 
   if (elBtnShareTelegram && elRefLinkInput) {
     elBtnShareTelegram.onclick = () => {
-      triggerHaptic('light');
+      triggerHaptic('success');
       const shareText = encodeURIComponent("🎮 Join WINWAN Cyber Miner! Tap to mine coins, spin the lucky wheel and win rewards!");
       const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(elRefLinkInput.value)}&text=${shareText}`;
+      
+      state.coins = (state.coins || 0) + 100;
+      showRewardModal(100, '✨ Squad link shared! 100 Coins added to your rig balance.');
+      updateUI();
+
       if (tg?.openTelegramLink) {
         tg.openTelegramLink(shareUrl);
       } else {
