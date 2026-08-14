@@ -141,7 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- ADSTERRA MONETIZATION CONFIG ---
-  const ADSTERRA_DIRECT_LINK = 'https://www.effectivecpmnetwork.com/gcadebhw?key=b7506b60b291b057b56d7cb3885dd8d4';
+  const ADSTERRA_LINK_1 = 'https://www.effectivecpmnetwork.com/gcadebhw?key=b7506b60b291b057b56d7cb3885dd8d4';
+  const ADSTERRA_LINK_2 = 'https://www.effectivecpmnetwork.com/bpgidnw8c?key=3a61c57fc5485434e2df4de61e2e7454';
 
   // --- ADSTERRA SPONSOR TASK INTEGRATION ---
   const elBtnSponsorTaskAdsterra = document.getElementById('btnSponsorTaskAdsterra');
@@ -149,9 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
     elBtnSponsorTaskAdsterra.onclick = () => {
       triggerHaptic('success');
       if (tg?.openLink) {
-        tg.openLink(ADSTERRA_DIRECT_LINK);
+        tg.openLink(ADSTERRA_LINK_2);
       } else {
-        window.open(ADSTERRA_DIRECT_LINK, '_blank');
+        window.open(ADSTERRA_LINK_2, '_blank');
       }
       state.coins = (state.coins || 0) + 1;
       state.adCoins = (state.adCoins || 0) + 1;
@@ -450,9 +451,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Open Adsterra direct link
       if (tg?.openLink) {
-        tg.openLink(ADSTERRA_DIRECT_LINK);
+        tg.openLink(ADSTERRA_LINK_1);
       } else {
-        window.open(ADSTERRA_DIRECT_LINK, '_blank');
+        window.open(ADSTERRA_LINK_1, '_blank');
       }
 
       // Grant Reward instantly
