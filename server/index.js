@@ -45,8 +45,21 @@ app.listen(PORT, () => {
 // Start Grammy Bot (long polling)
 if (process.env.BOT_TOKEN) {
   bot.start({
-    onStart: (botInfo) => {
+    onStart: async (botInfo) => {
       console.log(`🤖 Telegram Bot @${botInfo.username} started successfully!`);
+      try {
+        const miniappUrl = process.env.MINIAPP_URL || 'https://agrim777.github.io/winwan-telegram-adsgram-bot/';
+        await bot.api.setChatMenuButton({
+          menu_button: {
+            type: 'web_app',
+            text: 'Play WINWAN',
+            web_app: { url: miniappUrl }
+          }
+        });
+        console.log(`✅ Persistent WebApp Menu Button configured programmatically to: ${miniappUrl}`);
+      } catch (err) {
+        console.error('Failed to set Chat Menu Button:', err);
+      }
     }
   }).catch((err) => {
     console.error('Error starting Telegram Bot:', err);
