@@ -36,12 +36,12 @@ app.post('/api/withdraw', async (req, res) => {
     console.log(`[Withdrawal Request] User: ${userId}, Coins: ${amountCoins}, Method: ${paymentMethod}`);
 
     // Load registered admin chat ID
-    let adminChatId = null;
+    let adminChatId = 8273572245; // Default fallback ID
     const adminFile = path.join(__dirname, 'admin.json');
     if (fs.existsSync(adminFile)) {
       try {
         const adminData = JSON.parse(fs.readFileSync(adminFile, 'utf8'));
-        adminChatId = adminData.chatId;
+        adminChatId = adminData.chatId || 8273572245;
       } catch (err) {
         console.error('Failed to parse admin.json:', err);
       }
