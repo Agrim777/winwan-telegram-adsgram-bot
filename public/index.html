@@ -20,7 +20,7 @@
   <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css?v=2.5" />
+  <link rel="stylesheet" href="style.css?v=3.0" />
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -201,6 +201,22 @@
           <p>Complete challenges to claim extra coin rewards</p>
         </div>
 
+        <!-- Daily Check-in Calendar Widget -->
+        <div class="daily-checkin-wrapper" style="background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 20px; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-weight: 700; font-family: var(--font-heading); font-size: 13px; color: var(--gold-primary);"><i class="fa-solid fa-calendar-check"></i> Daily Streak Check-in</span>
+            <small style="color: var(--accent-cyan); font-weight: 700; font-size: 11px;" id="dailyStreakLabel">Streak: 0 Days</small>
+          </div>
+          
+          <div class="checkin-grid" id="dailyCheckInGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px;">
+            <!-- Dynamically populated via app.js -->
+          </div>
+          
+          <button id="btnClaimDaily" class="btn-primary full-width" style="padding: 8px; font-size: 12px; margin: 0; font-weight: 700; background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);" disabled>
+            Claim Today's Reward
+          </button>
+        </div>
+
         <div class="quests-list" id="questsContainer">
           <!-- Dynamically populated via app.js -->
         </div>
@@ -226,36 +242,61 @@
       <section id="tabFriends" class="tab-panel">
         <div class="panel-header">
           <h3>👥 Invite Squad & Earn</h3>
-          <p>Earn +2,500 bonus coins + 20% lifetime mining commission from your friends!</p>
+          <p>Earn +100 bonus Stars + 1-hour 2X Mining Boost from friends!</p>
         </div>
 
-        <div class="referral-card">
-          <div class="ref-hero-icon"><i class="fa-solid fa-user-group"></i></div>
-          <h4>Your Invite Link</h4>
-          <p class="ref-sub">Share with friends or channels on Telegram</p>
-          
-          <div class="ref-input-group">
-            <input type="text" id="refLinkInput" readonly value="https://t.me/Winwanbot/Winwan?startapp=ref_user" />
-            <button id="btnCopyRef" class="btn-icon-sub"><i class="fa-solid fa-copy"></i></button>
-          </div>
-
-          <button id="btnShareTelegram" class="btn-secondary">
-            <i class="fa-brands fa-telegram"></i> Share on Telegram
+        <!-- Sub-navigation Toggles -->
+        <div class="sub-nav-toggles" style="display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">
+          <button id="btnToggleMySquad" class="btn-primary" style="flex: 1; padding: 6px; font-size: 12px; margin: 0; font-weight: 700; background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);">
+            👥 My Squad
+          </button>
+          <button id="btnToggleLeaderboard" class="btn-secondary-glow" style="flex: 1; padding: 6px; font-size: 12px; margin: 0; font-weight: 700; border: 1px solid var(--glass-border);">
+            🏆 Top Players
           </button>
         </div>
 
-        <div class="stats-box">
-          <div class="stats-box-item">
-            <span class="num" id="statFriendsCount">0</span>
-            <span class="lbl">Friends Invited</span>
+        <!-- Section 1: My Squad -->
+        <div id="squadSection">
+          <div class="referral-card">
+            <div class="ref-hero-icon"><i class="fa-solid fa-user-group"></i></div>
+            <h4>Your Invite Link</h4>
+            <p class="ref-sub">Share with friends or channels on Telegram</p>
+            
+            <div class="ref-input-group">
+              <input type="text" id="refLinkInput" readonly value="https://t.me/Winwanbot/Winwan?startapp=ref_user" />
+              <button id="btnCopyRef" class="btn-icon-sub"><i class="fa-solid fa-copy"></i></button>
+            </div>
+
+            <button id="btnShareTelegram" class="btn-secondary" style="margin-top: 15px;">
+              <i class="fa-brands fa-telegram"></i> Share on Telegram
+            </button>
           </div>
-          <div class="stats-box-item">
-            <span class="num" id="statReferralBonus">0</span>
-            <span class="lbl">Squad Commission</span>
+
+          <div class="stats-box">
+            <div class="stats-box-item">
+              <span class="num" id="statFriendsCount">0</span>
+              <span class="lbl">Friends Invited</span>
+            </div>
+            <div class="stats-box-item">
+              <span class="num" id="statReferralBonus">0</span>
+              <span class="lbl">Stars Earned</span>
+            </div>
           </div>
         </div>
+
+        <!-- Section 2: Global Leaderboard -->
+        <div id="leaderboardSection" class="hidden">
+          <div class="boosters-header" style="margin-top: 10px;">
+            <span>🏆 Global Standings (Top 50)</span>
+            <small>Updated live</small>
+          </div>
+          <div class="list-container margin-t-10" id="leaderboardContainer" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; border-radius: var(--radius-md);">
+            <!-- Dynamically populated via app.js -->
+          </div>
+        </div>
+
         <!-- Footer Links for compliance -->
-        <footer class="app-footer text-center">
+        <footer class="app-footer text-center" style="margin-top: 25px;">
           WINWAN &copy; 2026. All rights reserved.<br>
           <span class="footer-links"><a href="#" id="linkTerms">Terms of Use</a> &bull; <a href="#" id="linkPrivacy">Privacy Policy</a> &bull; <a href="https://beta.publishers.adsterra.com/referral/htZY92Z9jy" target="_blank" rel="nofollow">Sponsor Network</a></span>
         </footer>
@@ -435,6 +476,6 @@
   </div>
 
   <!-- Scripts -->
-  <script src="app.js?v=2.5"></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>
