@@ -245,6 +245,29 @@ This user has reached the cash out threshold!`;
   }
 });
 
+// Get Global Leaderboard Standings
+app.get('/api/leaderboard', (req, res) => {
+  try {
+    const db = readDb();
+    const usersList = Object.values(db.users || {});
+    
+    const sorted = usersList
+      .filter(u => u.userId)
+      .sort((a, b) => (b.stars || 0) - (a.stars || 0))
+      .slice(0, 50)
+      .map(u => ({
+        userId: u.userId,
+        username: u.username,
+        stars: u.stars || 0
+      }));
+
+    res.json({ success: true, leaderboard: sorted });
+  } catch (err) {
+    console.error('Error handling /api/leaderboard:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', bot: 'Winwanbot', service: 'Telegram Mini App' });
