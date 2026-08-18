@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
     level: 1,
     invitedFriends: 0,
     referralEarnings: 0,
+    dailyStreak: 0,
+    lastCheckInDate: null,
     upgrades: [
       { id: 'u_multitap', name: 'Multi-Core Tap', desc: '+1 Coin mined per tap', cost: 200, level: 1, icon: 'fa-hand-pointer' },
       { id: 'u_energy', name: 'Energy Cell Max', desc: '+500 Max Energy capacity', cost: 400, level: 1, icon: 'fa-bolt' },
@@ -136,6 +138,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const elBtnPlayAdAction = document.getElementById('btnPlayAdAction');
   const elBtnCancelAdAction = document.getElementById('btnCancelAdAction');
   let currentAdTriggerSource = null; // 'energy' | 'turbo' | 'spins'
+
+  // Retention & Leaderboard DOM Elements
+  const elDailyCheckInGrid = document.getElementById('dailyCheckInGrid');
+  const elBtnClaimDaily = document.getElementById('btnClaimDaily');
+  const elDailyStreakLabel = document.getElementById('dailyStreakLabel');
+  const elBtnToggleMySquad = document.getElementById('btnToggleMySquad');
+  const elBtnToggleLeaderboard = document.getElementById('btnToggleLeaderboard');
+  const elSquadSection = document.getElementById('squadSection');
+  const elLeaderboardSection = document.getElementById('leaderboardSection');
+  const elLeaderboardContainer = document.getElementById('leaderboardContainer');
+
+  // Daily Check-in rewards configuration (7 Days)
+  const dailyCheckInRewards = [
+    { day: 1, reward: 5, color: '#1e293b' },
+    { day: 2, reward: 10, color: '#1e293b' },
+    { day: 3, reward: 15, color: '#1e293b' },
+    { day: 4, reward: 20, color: '#1e293b' },
+    { day: 5, reward: 25, color: '#1e293b' },
+    { day: 6, reward: 50, color: '#06b6d4' },
+    { day: 7, reward: 100, color: '#f59e0b' }
+  ];
 
   // Info & Reward Modals
   const elInfoModal = document.getElementById('infoModal');
@@ -284,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderUpgrades();
     renderQuests();
+    renderDailyCheckIn();
     saveState();
   }
 
@@ -927,6 +951,261 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
       }
     };
+  }
+
+  // --- RETENTION & LEADERBOARD IMPLEMENTATION ---
+  function renderDailyCheckIn() {
+    if (!elDailyCheckInGrid) return;
+    elDailyCheckInGrid.innerHTML = '';
+    
+    const todayStr = new Date().toISOString().split('T')[0];
+    const alreadyClaimedToday = (state.lastCheckInDate === todayStr);
+    
+    let activeDay = 1;
+    if (state.dailyStreak && state.dailyStreak > 0) {
+      if (alreadyClaimedToday) {
+        activeDay = -1;
+      } else {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        if (state.lastCheckInDate === yesterdayStr) {
+          activeDay = (state.dailyStreak % 7) + 1;
+        } else {
+          activeDay = 1;
+        }
+      }
+    }
+
+    if (elDailyStreakLabel) {
+      elDailyStreakLabel.textContent = `Streak: ${state.dailyStreak || 0} Days`;
+    }
+
+    dailyCheckInRewards.forEach(r => {
+      const card = document.createElement('div');
+      card.style.background = r.color;
+      card.style.border = '1px solid var(--glass-border)';
+      card.style.borderRadius = 'var(--radius-sm)';
+      card.style.padding = '8px 4px';
+      card.style.textAlign = 'center';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.alignItems = 'center';
+      card.style.justifyContent = 'center';
+
+      if (r.day === 7) {
+        card.style.gridColumn = 'span 2';
+      }
+
+      let isClaimed = false;
+      let isActive = false;
+
+      if (state.dailyStreak && state.dailyStreak >= r.day && alreadyClaimedToday) {
+        isClaimed = true;
+      } else if (state.dailyStreak && state.dailyStreak >= r.day && !alreadyClaimedToday && r.day < activeDay) {
+        isClaimed = true;
+      }
+
+      if (r.day === activeDay) {
+        isActive = true;
+      }
+
+      if (isActive) {
+        card.style.borderColor = 'var(--gold-primary)';
+        card.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.25)';
+      } else if (isClaimed) {
+        card.style.opacity = '0.4';
+      }
+
+      const dayText = document.createElement('div');
+      dayText.style.fontSize = '9px';
+      dayText.style.color = 'var(--hint-color)';
+      dayText.style.fontWeight = '600';
+      dayText.textContent = `Day ${r.day}`;
+
+      const icon = document.createElement('div');
+      icon.style.fontSize = '14px';
+      icon.style.margin = '4px 0';
+      
+      if (isClaimed) {
+        icon.innerHTML = '<i class="fa-solid fa-circle-check" style="color: #22c55e;"></i>';
+      } else if (r.day === 7) {
+        icon.innerHTML = '🎁';
+      } else {
+        icon.innerHTML = '⭐';
+      }
+
+      const rewardText = document.createElement('div');
+      rewardText.style.fontSize = '10px';
+      rewardText.style.fontWeight = '700';
+      rewardText.style.color = isClaimed ? 'var(--hint-color)' : (isActive ? 'var(--gold-primary)' : 'white');
+      rewardText.textContent = `+${r.reward}`;
+
+      card.appendChild(dayText);
+      card.appendChild(icon);
+      card.appendChild(rewardText);
+      elDailyCheckInGrid.appendChild(card);
+    });
+
+    if (elBtnClaimDaily) {
+      if (activeDay !== -1) {
+        elBtnClaimDaily.disabled = false;
+        elBtnClaimDaily.textContent = `Claim Day ${activeDay} (+${dailyCheckInRewards[activeDay - 1].reward} Stars)`;
+      } else {
+        elBtnClaimDaily.disabled = true;
+        elBtnClaimDaily.textContent = 'Come Back Tomorrow!';
+      }
+    }
+  }
+
+  if (elBtnClaimDaily) {
+    elBtnClaimDaily.onclick = () => {
+      const todayStr = new Date().toISOString().split('T')[0];
+      
+      let activeDay = 1;
+      if (state.dailyStreak && state.dailyStreak > 0) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        if (state.lastCheckInDate === yesterdayStr) {
+          activeDay = (state.dailyStreak % 7) + 1;
+        } else {
+          activeDay = 1;
+        }
+      }
+
+      const rewardObj = dailyCheckInRewards[activeDay - 1];
+      
+      state.adCoins = (state.adCoins || 0) + rewardObj.reward;
+      state.coins = (state.coins || 0) + rewardObj.reward;
+      state.lastCheckInDate = todayStr;
+      state.dailyStreak = activeDay;
+      
+      saveState();
+      triggerHaptic('success');
+      showRewardModal(rewardObj.reward, `Daily Check-in Day ${activeDay} Claimed!`);
+      
+      syncUserStats();
+      updateUI();
+    };
+  }
+
+  // Toggle tabFriends views
+  if (elBtnToggleMySquad && elBtnToggleLeaderboard && elSquadSection && elLeaderboardSection) {
+    elBtnToggleMySquad.onclick = () => {
+      triggerHaptic('light');
+      elBtnToggleMySquad.className = 'btn-primary';
+      elBtnToggleMySquad.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+      elBtnToggleMySquad.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.2)';
+      
+      elBtnToggleLeaderboard.className = 'btn-secondary-glow';
+      elBtnToggleLeaderboard.style.background = 'transparent';
+      elBtnToggleLeaderboard.style.boxShadow = 'none';
+      
+      elSquadSection.classList.remove('hidden');
+      elLeaderboardSection.classList.add('hidden');
+    };
+
+    elBtnToggleLeaderboard.onclick = () => {
+      triggerHaptic('light');
+      elBtnToggleLeaderboard.className = 'btn-primary';
+      elBtnToggleLeaderboard.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+      elBtnToggleLeaderboard.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.2)';
+      
+      elBtnToggleMySquad.className = 'btn-secondary-glow';
+      elBtnToggleMySquad.style.background = 'transparent';
+      elBtnToggleMySquad.style.boxShadow = 'none';
+      
+      elSquadSection.classList.add('hidden');
+      elLeaderboardSection.classList.remove('hidden');
+      
+      fetchLeaderboard();
+    };
+  }
+
+  // Fetch Leaderboard Standings
+  function fetchLeaderboard() {
+    if (!elLeaderboardContainer) return;
+    elLeaderboardContainer.innerHTML = '<div class="text-center" style="padding: 20px; font-size:11px; color:var(--hint-color);"><i class="fa-solid fa-spinner fa-spin"></i> Loading Standings...</div>';
+
+    fetch('/api/leaderboard')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success || !data.leaderboard) {
+          elLeaderboardContainer.innerHTML = '<div class="text-center" style="padding: 15px; font-size: 11px; color: red;">Failed to load leaderboard.</div>';
+          return;
+        }
+
+        elLeaderboardContainer.innerHTML = '';
+        const list = data.leaderboard;
+        if (list.length === 0) {
+          elLeaderboardContainer.innerHTML = '<div class="text-center" style="padding: 15px; font-size: 11px; color: var(--hint-color);">No players registered yet.</div>';
+          return;
+        }
+
+        list.forEach((player, index) => {
+          const item = document.createElement('div');
+          item.style.display = 'flex';
+          item.style.justifyContent = 'space-between';
+          item.style.alignItems = 'center';
+          item.style.padding = '8px 10px';
+          item.style.background = 'var(--glass-card)';
+          item.style.border = '1px solid var(--glass-border)';
+          item.style.borderRadius = 'var(--radius-sm)';
+          item.style.marginBottom = '4px';
+
+          const left = document.createElement('div');
+          left.style.display = 'flex';
+          left.style.alignItems = 'center';
+          left.style.gap = '8px';
+
+          const rankBadge = document.createElement('span');
+          rankBadge.style.fontWeight = '800';
+          rankBadge.style.fontSize = '11px';
+          rankBadge.style.width = '18px';
+          rankBadge.style.height = '18px';
+          rankBadge.style.borderRadius = '50%';
+          rankBadge.style.display = 'flex';
+          rankBadge.style.alignItems = 'center';
+          rankBadge.style.justifyContent = 'center';
+
+          if (index === 0) {
+            rankBadge.innerHTML = '🥇';
+          } else if (index === 1) {
+            rankBadge.innerHTML = '🥈';
+          } else if (index === 2) {
+            rankBadge.innerHTML = '🥉';
+          } else {
+            rankBadge.textContent = index + 1;
+            rankBadge.style.background = '#334155';
+            rankBadge.style.color = '#94a3b8';
+          }
+
+          const usernameSpan = document.createElement('span');
+          usernameSpan.style.fontSize = '11px';
+          usernameSpan.style.fontWeight = '600';
+          usernameSpan.textContent = player.username ? `@${player.username}` : `User ${player.userId.toString().slice(-4)}`;
+
+          left.appendChild(rankBadge);
+          left.appendChild(usernameSpan);
+
+          const right = document.createElement('div');
+          right.style.fontSize = '11px';
+          right.style.fontWeight = '800';
+          right.style.color = 'var(--gold-primary)';
+          right.innerHTML = `⭐ ${player.stars.toLocaleString()}`;
+
+          item.appendChild(left);
+          item.appendChild(right);
+          elLeaderboardContainer.appendChild(item);
+        });
+      })
+      .catch(err => {
+        console.error('Error fetching leaderboard:', err);
+        elLeaderboardContainer.innerHTML = '<div class="text-center" style="padding: 15px; font-size: 11px; color: red;">Network error.</div>';
+      });
   }
 
   // Initial render
