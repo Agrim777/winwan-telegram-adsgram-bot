@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     maxEnergy: 1000,
     turboActiveUntil: 0,
     totalTaps: 0,
-    spinsAvailable: 3,
+    spinsAvailable: 5,
     lastSpinDate: null,
     level: 1,
     invitedFriends: 0,
@@ -55,6 +55,32 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       localStorage.setItem('winwan_cyber_state', JSON.stringify(state));
     } catch (e) {}
+  }
+
+  // Daily spins limit checker (Max 5 spins per day)
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (state.lastSpinDate !== todayStr) {
+      state.spinsAvailable = 5;
+      state.lastSpinDate = todayStr;
+      saveState();
+    }
+  } catch (e) {
+    console.error('Error resetting daily spins:', e);
+  }
+
+  function syncUserStats() {
+    fetch('/api/sync-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userId: userId,
+        username: user?.username || user?.first_name || 'Anonymous',
+        stars: state.adCoins || 0
+      })
+    }).catch(err => console.error('Failed to sync user stats:', err));
   }
 
   // Telegram Haptics Helper
@@ -190,7 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       state.coins = (state.coins || 0) + 1;
       state.adCoins = (state.adCoins || 0) + 1;
-      showRewardModal(1, '🎉 Sponsor Task Completed! 1 Ad Coin awarded!');
+      showRewardModal(1, '🎉 Sponsor Task Completed! 1 Star awarded!');
+      syncUserStats();
       updateUI();
     };
   }
@@ -341,7 +368,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       state.coins = (state.coins || 0) + 1;
       state.adCoins = (state.adCoins || 0) + 1;
-      showRewardModal(1, '🎉 Cyber Core mined! 1 Ad Coin awarded.');
+      showRewardModal(1, '🎉 Cyber Core mined! 1 Star awarded.');
+      syncUserStats();
       updateUI();
     }, { passive: false });
 
@@ -355,19 +383,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       state.coins = (state.coins || 0) + 1;
       state.adCoins = (state.adCoins || 0) + 1;
-      showRewardModal(1, '🎉 Cyber Core mined! 1 Ad Coin awarded.');
+      showRewardModal(1, '🎉 Cyber Core mined! 1 Star awarded.');
+      syncUserStats();
       updateUI();
     });
   }
 
   // --- LUCKY WHEEL CANVAS ENGINE ---
   const wheelSlices = [
-    { label: '+250 Coins', value: 250, type: 'coins', color: '#1e293b' },
-    { label: '+1000 Coins', value: 1000, type: 'coins', color: '#06b6d4' },
-    { label: '+500 Coins', value: 500, type: 'coins', color: '#1e293b' },
-    { label: '🔥 2X Turbo', value: 'turbo', type: 'turbo', color: '#8b5cf6' },
-    { label: '+100 Coins', value: 100, type: 'coins', color: '#1e293b' },
-    { label: '💎 5000 JACKPOT', value: 5000, type: 'coins', color: '#f59e0b' }
+    { label: 'Try Next Time', value: 0, type: 'retry', color: '#1e293b' },
+    { label: '+50 Stars', value: 50, type: 'stars', color: '#06b6d4' },
+    { label: 'Try Next Time', value: 0, type: 'retry', color: '#1e293b' },
+    { label: '+100 Stars', value: 100, type: 'stars', color: '#f59e0b' },
+    { label: 'Try Next Time', value: 0, type: 'retry', color: '#1e293b' },
+    { label: 'Try Next Time', value: 0, type: 'retry', color: '#1e293b' }
   ];
 
   let currentWheelAngle = 0;
@@ -417,7 +446,21 @@ document.addEventListener('DOMContentLoaded', () => {
       state.spinsAvailable = Math.max(0, state.spinsAvailable - 1);
       triggerHaptic('medium');
 
-      const winningIndex = Math.floor(Math.random() * wheelSlices.length);
+      // Weighted probability:
+      // Try Next Time (80%): Randomly pick from indices [0, 2, 4, 5]
+      // +50 Stars (15%): Index 1
+      // +100 Stars (5%): Index 3
+      let winningIndex = 0;
+      const rand = Math.random() * 100;
+      if (rand < 80) {
+        const retries = [0, 2, 4, 5];
+        winningIndex = retries[Math.floor(Math.random() * retries.length)];
+      } else if (rand < 95) {
+        winningIndex = 1;
+      } else {
+        winningIndex = 3;
+      }
+
       const sliceAngle = 360 / wheelSlices.length;
       const targetRotation = (360 * 5) + (360 - (winningIndex * sliceAngle + sliceAngle / 2)) - 90;
 
@@ -428,12 +471,13 @@ document.addEventListener('DOMContentLoaded', () => {
         isSpinning = false;
         const prize = wheelSlices[winningIndex];
 
-        if (prize.type === 'coins') {
-          state.coins += prize.value;
+        if (prize.type === 'stars') {
+          state.adCoins = (state.adCoins || 0) + prize.value;
+          state.coins = (state.coins || 0) + prize.value;
           showRewardModal(prize.value, `Lucky Wheel Prize: ${prize.label}!`);
-        } else if (prize.type === 'turbo') {
-          state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
-          showRewardModal(0, '🔥 2X Turbo Mining Boost Activated for 10 Minutes!');
+          syncUserStats();
+        } else if (prize.type === 'retry') {
+          showRewardModal(0, 'Try Next Time! Keep tapping the Core to earn guaranteed Stars.');
         }
 
         // Quest progress
@@ -518,14 +562,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (currentAdTriggerSource === 'energy') {
         state.energy = state.maxEnergy;
-        showRewardModal(1, '⚡ Instant Full Energy Refill + 1 Ad Coin Mined!');
+        showRewardModal(1, '⚡ Instant Full Energy Refill + 1 Star Mined!');
       } else if (currentAdTriggerSource === 'turbo') {
         state.turboActiveUntil = Date.now() + (10 * 60 * 1000);
-        showRewardModal(1, '🔥 2X Turbo Mining Boost Activated + 1 Ad Coin Mined!');
+        showRewardModal(1, '🔥 2X Turbo Mining Boost Activated + 1 Star Mined!');
       } else if (currentAdTriggerSource === 'spins') {
         state.spinsAvailable = (state.spinsAvailable || 0) + 1;
-        showRewardModal(1, 'Received +1 Extra Lucky Wheel Spin + 1 Ad Coin!');
+        showRewardModal(1, 'Received +1 Extra Lucky Wheel Spin + 1 Star!');
       }
+      syncUserStats();
       updateUI();
     };
   }
@@ -808,18 +853,18 @@ document.addEventListener('DOMContentLoaded', () => {
       elWithdrawModal.classList.remove('hidden');
       
       const coins = state.adCoins || 0;
-      if (coins < 10000) {
+      if (coins < 500) {
         if (elWithdrawIneligibleBlock) elWithdrawIneligibleBlock.classList.remove('hidden');
         if (elWithdrawEligibleBlock) elWithdrawEligibleBlock.classList.add('hidden');
         if (elWithdrawMissingCoinsText) {
-          elWithdrawMissingCoinsText.textContent = `Missing: ${(10000 - coins).toLocaleString()} Ad Coins`;
+          elWithdrawMissingCoinsText.textContent = `Missing: ${(500 - coins).toLocaleString()} Stars`;
         }
       } else {
         if (elWithdrawIneligibleBlock) elWithdrawIneligibleBlock.classList.add('hidden');
         if (elWithdrawEligibleBlock) elWithdrawEligibleBlock.classList.remove('hidden');
         if (elWithdrawEligibleAmountText) {
-          const dollarValue = (coins / 10000).toFixed(2);
-          elWithdrawEligibleAmountText.textContent = `$${dollarValue} USD (${coins.toLocaleString()} Ad Coins)`;
+          const dollarValue = (coins / 500).toFixed(2);
+          elWithdrawEligibleAmountText.textContent = `$${dollarValue} USD (${coins.toLocaleString()} Stars)`;
         }
       }
     };
@@ -865,7 +910,8 @@ document.addEventListener('DOMContentLoaded', () => {
           state.adCoins = 0;
           if (elWithdrawDetails) elWithdrawDetails.value = '';
           if (elWithdrawModal) elWithdrawModal.classList.add('hidden');
-          showRewardModal(0, `🚀 Cash out request for ${coinsToWithdraw.toLocaleString()} Ad Coins submitted! Admin will notify you shortly.`);
+          showRewardModal(0, `🚀 Cash out request for ${coinsToWithdraw.toLocaleString()} Stars submitted! Admin will notify you shortly.`);
+          syncUserStats();
           updateUI();
         } else {
           alert('Failed to submit cash out request. Try again.');
@@ -877,12 +923,13 @@ document.addEventListener('DOMContentLoaded', () => {
         state.adCoins = 0;
         if (elWithdrawDetails) elWithdrawDetails.value = '';
         if (elWithdrawModal) elWithdrawModal.classList.add('hidden');
-        showRewardModal(0, `🚀 [Demo Mode] Cash out request for ${coinsToWithdraw.toLocaleString()} Ad Coins simulated!`);
+        showRewardModal(0, `🚀 [Demo Mode] Cash out request for ${coinsToWithdraw.toLocaleString()} Stars simulated!`);
         updateUI();
       }
     };
   }
 
   // Initial render
+  syncUserStats();
   updateUI();
 });
