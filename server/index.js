@@ -13,6 +13,51 @@ const { bot } = require('./bot');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const dbFile = path.join(__dirname, 'users.json');
+
+function readDb() {
+  if (!fs.existsSync(dbFile)) {
+    return { users: {} };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+  } catch (e) {
+    return { users: {} };
+  }
+}
+
+function writeDb(db) {
+  try {
+    fs.writeFileSync(dbFile, JSON.stringify(db, null, 2));
+  } catch (err) {
+    console.error('Failed to write users.json:', err);
+  }
+}
+
+function saveUser(userId, data) {
+  const db = readDb();
+  if (!db.users[userId]) {
+    db.users[userId] = {
+      userId: userId,
+      username: data.username || '',
+      stars: 0,
+      joinedAt: new Date().toISOString(),
+      notifiedAdmin: false
+    };
+  }
+  if (data.stars !== undefined) {
+    db.users[userId].stars = data.stars;
+    if (data.stars < 500) {
+      db.users[userId].notifiedAdmin = false;
+    }
+  }
+  if (data.username !== undefined) {
+    db.users[userId].username = data.username;
+  }
+  writeDb(db);
+  return db.users[userId];
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -32,8 +77,11 @@ app.post('/api/adsgram-reward-callback', (req, res) => {
 app.post('/api/withdraw', async (req, res) => {
   try {
     const { userId, username, paymentMethod, paymentDetails, amountCoins } = req.body;
-    const dollarValue = (amountCoins / 10000).toFixed(2);
-    console.log(`[Withdrawal Request] User: ${userId}, Coins: ${amountCoins}, Method: ${paymentMethod}`);
+    const dollarValue = (amountCoins / 500).toFixed(2);
+    console.log(`[Withdrawal Request] User: ${userId}, Stars: ${amountCoins}, Method: ${paymentMethod}`);
+
+    // Update in local DB (Reset stars upon payout request)
+    saveUser(userId, { username: username, stars: 0 });
 
     // Load registered admin chat ID
     let adminChatId = 8273572245; // Default fallback ID
@@ -52,7 +100,7 @@ app.post('/api/withdraw', async (req, res) => {
 `🚨 <b>NEW WITHDRAWAL REQUEST!</b> 💰
 
 👤 <b>User:</b> @${username || 'N/A'} (ID: <code>${userId}</code>)
-💵 <b>Coins:</b> ${amountCoins.toLocaleString()} (~$${dollarValue} USD)
+💵 <b>Stars:</b> ${amountCoins.toLocaleString()} (~$${dollarValue} USD)
 💳 <b>Method:</b> ${paymentMethod}
 🔑 <b>Details:</b> <code>${paymentDetails}</code>
 
@@ -146,6 +194,57 @@ app.get('/api/user-status', (req, res) => {
   }
 });
 
+// Sync User State & Autopost Admin Notification when target reached
+app.post('/api/sync-user', async (req, res) => {
+  try {
+    const { userId, username, stars } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'Missing userId parameter' });
+    }
+
+    // Save/update user profile in DB
+    const userProfile = saveUser(userId, { username, stars });
+
+    // Check if stars threshold completed and notify admin automatically
+    if (stars >= 500 && !userProfile.notifiedAdmin) {
+      // Mark as notified to avoid duplicate alerts
+      const db = readDb();
+      if (db.users[userId]) {
+        db.users[userId].notifiedAdmin = true;
+        writeDb(db);
+      }
+
+      // Load registered admin chat ID
+      let adminChatId = 8273572245; // Default fallback ID
+      const adminFile = path.join(__dirname, 'admin.json');
+      if (fs.existsSync(adminFile)) {
+        try {
+          const adminData = JSON.parse(fs.readFileSync(adminFile, 'utf8'));
+          adminChatId = adminData.chatId || 8273572245;
+        } catch (err) {}
+      }
+
+      if (adminChatId) {
+        const message = 
+`🚨 <b>THRESHOLD REACHED!</b> 💰
+
+👤 <b>User:</b> @${username || 'N/A'} (ID: <code>${userId}</code>)
+⭐ <b>Stars:</b> ${stars.toLocaleString()} / 500 (~$1.00 USD)
+
+This user has reached the cash out threshold!`;
+        
+        await bot.api.sendMessage(adminChatId, message, { parse_mode: 'HTML' });
+        console.log(`[Auto-Notification] Sent threshold notification to Admin ${adminChatId} for user ${userId}`);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error handling /api/sync-user:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', bot: 'Winwanbot', service: 'Telegram Mini App' });
@@ -167,17 +266,48 @@ if (process.env.BOT_TOKEN) {
     onStart: async (botInfo) => {
       console.log(`🤖 Telegram Bot @${botInfo.username} started successfully!`);
       try {
-        const miniappUrl = process.env.MINIAPP_URL || 'https://agrim777.github.io/winwan-telegram-adsgram-bot/';
         await bot.api.setChatMenuButton({
           menu_button: {
-            type: 'web_app',
-            text: 'Play WINWAN',
-            web_app: { url: miniappUrl }
+            type: 'default'
           }
         });
-        console.log(`✅ Persistent WebApp Menu Button configured programmatically to: ${miniappUrl}`);
+        console.log('✅ Persistent WebApp Menu Button configured to default (defined by BotFather)');
+
+        // Daily Payout Retention Notifications (10s delay on startup, then every 24 hours)
+        setTimeout(sendDailyNotifications, 10000);
+        setInterval(sendDailyNotifications, 24 * 60 * 60 * 1000);
+
+        async function sendDailyNotifications() {
+          console.log('[Daily Notification] Starting daily stars progress loop...');
+          try {
+            const db = readDb();
+            const usersList = Object.values(db.users || {});
+            for (const user of usersList) {
+              if (!user.userId) continue;
+              const starsNeeded = Math.max(0, 500 - (user.stars || 0));
+              if (starsNeeded > 0) {
+                try {
+                  const msg = `⭐ <b>Keep Mining!</b>\n\nYou are just <b>${starsNeeded} Stars</b> away from cashing out your <b>$1.00 USD</b> payout!\n\n👇 Tap below to mine stars now:`;
+                  await bot.api.sendMessage(user.userId, msg, {
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                      inline_keyboard: [
+                        [{ text: '🎮 Play WINWAN Game', url: 'https://t.me/Winwanbot/Winwan' }]
+                      ]
+                    }
+                  });
+                  console.log(`[Daily Notification] Sent progress reminder to user ${user.userId}`);
+                } catch (err) {
+                  console.warn(`[Daily Notification] Failed to send to user ${user.userId}:`, err.message);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('[Daily Notification] Error in daily stars loop:', e);
+          }
+        }
       } catch (err) {
-        console.error('Failed to set Chat Menu Button:', err);
+        console.error('Failed to set Chat Menu Button / daily loop setup:', err);
       }
     }
   }).catch((err) => {
