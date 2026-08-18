@@ -111,6 +111,174 @@ bot.command('setadmin', async (ctx) => {
   }
 });
 
+// Admin verification helper
+const ADMIN_ID = 8273572245;
+
+function isSenderAdmin(senderId) {
+  if (senderId == ADMIN_ID) return true;
+  try {
+    const adminFile = path.join(__dirname, 'admin.json');
+    if (fs.existsSync(adminFile)) {
+      const adminData = JSON.parse(fs.readFileSync(adminFile, 'utf8'));
+      return adminData.chatId == senderId;
+    }
+  } catch (e) {}
+  return false;
+}
+
+// /users command (Lists all users & star balances)
+bot.command('users', async (ctx) => {
+  const senderId = ctx.from?.id;
+  if (!isSenderAdmin(senderId)) {
+    return ctx.reply('⚠️ You do not have permissions to access this command.');
+  }
+
+  try {
+    const dbFile = path.join(__dirname, 'users.json');
+    if (!fs.existsSync(dbFile)) {
+      return ctx.reply('📂 No registered users found in the database yet.');
+    }
+
+    const db = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+    const usersList = Object.values(db.users || {});
+    if (usersList.length === 0) {
+      return ctx.reply('📂 No registered users found in the database yet.');
+    }
+
+    let response = `👤 <b>WINWAN Registered Users (${usersList.length}):</b>\n\n`;
+    usersList.forEach((user, index) => {
+      const username = user.username ? `@${escapeHtml(user.username)}` : 'N/A';
+      const joined = user.joinedAt ? new Date(user.joinedAt).toLocaleDateString() : 'N/A';
+      response += `${index + 1}. <b>${username}</b> (ID: <code>${user.userId}</code>)\n`;
+      response += `   ⭐ Stars: <b>${user.stars || 0}</b> | Joined: ${joined}\n\n`;
+    });
+
+    if (response.length > 4000) {
+      const chunks = response.match(/[\s\S]{1,4000}/g);
+      for (const chunk of chunks) {
+        await ctx.reply(chunk, { parse_mode: 'HTML' });
+      }
+    } else {
+      await ctx.reply(response, { parse_mode: 'HTML' });
+    }
+  } catch (err) {
+    console.error('Error handling /users command:', err);
+    await ctx.reply('❌ Failed to fetch user statistics.');
+  }
+});
+
+// /admin dashboard command
+bot.command('admin', async (ctx) => {
+  const senderId = ctx.from?.id;
+  if (!isSenderAdmin(senderId)) {
+    return ctx.reply('⚠️ You do not have permissions to access this command.');
+  }
+
+  try {
+    const dbFile = path.join(__dirname, 'users.json');
+    const referralsFile = path.join(__dirname, 'referrals.json');
+    
+    let totalUsers = 0;
+    let totalStars = 0;
+    
+    if (fs.existsSync(dbFile)) {
+      const db = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+      const list = Object.values(db.users || {});
+      totalUsers = list.length;
+      totalStars = list.reduce((acc, user) => acc + (user.stars || 0), 0);
+    }
+
+    let totalReferrals = 0;
+    if (fs.existsSync(referralsFile)) {
+      try {
+        const refs = JSON.parse(fs.readFileSync(referralsFile, 'utf8'));
+        totalReferrals = refs.length;
+      } catch (e) {}
+    }
+
+    const adminMsg = 
+`👑 <b>WINWAN ADMIN DASHBOARD</b> 📊
+
+📈 <b>Total Players:</b> ${totalUsers.toLocaleString()}
+⭐ <b>Total Mined Stars:</b> ${totalStars.toLocaleString()}
+👥 <b>Total Referral Joins:</b> ${totalReferrals.toLocaleString()}
+
+🛠️ <b>Available Commands:</b>
+• /users - List all users & balances
+• /setstars &lt;userId&gt; &lt;amount&gt; - Set user star balance
+• /stats - Quick summary status`;
+
+    await ctx.reply(adminMsg, { parse_mode: 'HTML' });
+  } catch (err) {
+    console.error('Error handling /admin command:', err);
+    await ctx.reply('❌ Failed to load admin dashboard.');
+  }
+});
+
+// /stats command
+bot.command('stats', async (ctx) => {
+  const senderId = ctx.from?.id;
+  if (!isSenderAdmin(senderId)) return;
+
+  try {
+    const dbFile = path.join(__dirname, 'users.json');
+    let totalUsers = 0;
+    let totalStars = 0;
+    if (fs.existsSync(dbFile)) {
+      const db = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+      const list = Object.values(db.users || {});
+      totalUsers = list.length;
+      totalStars = list.reduce((acc, u) => acc + (u.stars || 0), 0);
+    }
+    await ctx.reply(`📊 <b>Stats Quick View:</b>\n\nPlayers: <b>${totalUsers}</b>\nStars: <b>${totalStars}</b>`, { parse_mode: 'HTML' });
+  } catch (e) {
+    await ctx.reply('❌ Failed to load stats.');
+  }
+});
+
+// /setstars command
+bot.command('setstars', async (ctx) => {
+  const senderId = ctx.from?.id;
+  if (!isSenderAdmin(senderId)) {
+    return ctx.reply('⚠️ You do not have permissions to access this command.');
+  }
+
+  const args = ctx.match?.trim().split(/\s+/);
+  if (!args || args.length < 2) {
+    return ctx.reply('ℹ️ <b>Usage:</b> <code>/setstars &lt;userId&gt; &lt;amount&gt;</code>', { parse_mode: 'HTML' });
+  }
+
+  const targetUserId = args[0];
+  const starAmount = parseInt(args[1], 10);
+
+  if (isNaN(starAmount) || starAmount < 0) {
+    return ctx.reply('❌ Please enter a valid star amount.');
+  }
+
+  try {
+    const dbFile = path.join(__dirname, 'users.json');
+    if (!fs.existsSync(dbFile)) {
+      return ctx.reply('❌ Users database not initialized.');
+    }
+
+    const db = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+    if (!db.users[targetUserId]) {
+      return ctx.reply(`❌ User with ID <code>${targetUserId}</code> not found in database.`, { parse_mode: 'HTML' });
+    }
+
+    db.users[targetUserId].stars = starAmount;
+    if (starAmount < 500) {
+      db.users[targetUserId].notifiedAdmin = false;
+    }
+    fs.writeFileSync(dbFile, JSON.stringify(db, null, 2));
+
+    await ctx.reply(`✅ Successfully updated balance for user ID <code>${targetUserId}</code> to <b>${starAmount} Stars</b>!`, { parse_mode: 'HTML' });
+  } catch (err) {
+    console.error('Error handling /setstars:', err);
+    await ctx.reply('❌ Failed to update stars balance.');
+  }
+});
+
 // Any other message fallback
 bot.on('message:text', async (ctx) => {
   const keyboard = new InlineKeyboard()
